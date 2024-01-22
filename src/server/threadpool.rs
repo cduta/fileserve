@@ -67,7 +67,7 @@ fn work(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> ! {
     match receiver.lock() {
       Ok(exclusive_message) =>
         match exclusive_message.recv() {
-          Ok(job) => { println!("HTTP request delegated to {id}"); job() },
+          Ok(job) => { println!("HTTP request delegated to worker {id}"); job() },
           Err(e)  => println!("Running Worker Error: Receiving message failed. {e}")
         },
       Err(e) => println!("Running Worker Error: Receiver lock failed. {e}")
