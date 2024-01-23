@@ -4,8 +4,6 @@ use std::net::TcpListener;
 use std::fs;
 use std::io::prelude::*;
 use std::net::TcpStream;
-use std::thread;
-use std::time::Duration;
 
 mod threadpool;
 mod error;
@@ -80,9 +78,17 @@ impl Request {
 }
 
 impl Display for Request {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Request Type: {}\nVersion: {}\nURL: {}\nSettings: {:?}", self.r_type, self.version, self.url, self.settings)
-    }
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "Request Type: {}\nVersion: {}\nURL: {}\nSettings: {:?}", self.r_type, self.version, self.url, self.settings)
+  }
+}
+
+fn compile_response(status_line: &str, contents: Vec<u8>) -> Vec<u8> {
+  [status_line.as_bytes(),
+   "\r\nContent-Length:".as_bytes(),
+   contents.len().to_string().as_bytes(),
+   "\r\n\r\n".as_bytes(),
+   &contents].concat()
 }
 
 fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
@@ -98,26 +104,25 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
   println!("{request}");
   println!("### END REQUEST ###");
 
+  let ok        = "HTTP/1.1 200 OK";
+  let not_found = "HTTP/1.1 404 NOT FOUND";
+
   // Evaluate request
-  let (status_line, filename) = match request.url.as_str() {
-    "/"      => {("HTTP/1.1 200 OK", "hello.html")},
-    "/sleep" => {thread::sleep(Duration::from_secs(5)); ("HTTP/1.1 200 OK", "hello.html")},
-    _        => {("HTTP/1.1 404 NOT FOUND", "404.html")}
+  let (status_line, contents) = match request.url.as_str() {
+    url if url.starts_with("/static/icons")
+        && (url.ends_with(".webmanifest")
+         || url.ends_with(".webp")
+         || url.ends_with(".ico")
+         || url.ends_with(".svg")
+         || url.ends_with(".jpg")
+         || url.ends_with(".png")
+         || url.ends_with(".xml")) => {(ok       , fs::read(url.chars().skip(1).collect::<String>())?)},
+    "/"                            => {(ok       , fs::read("hello.html")?)},
+    _                              => {(not_found, fs::read("404.html")?)}
   };
 
-  // Build content for response
-  let contents = fs::read_to_string(filename)?;
-
-  // Build response
-  let response = format!(
-    "{}\r\nContent-Length: {}\r\n\r\n{}",
-    status_line,
-    contents.len(),
-    contents
-  );
-
   // Respond
-  stream.write_all(response.as_bytes())?;
+  stream.write_all(compile_response(status_line, contents).as_slice())?;
   stream.flush()?;
 
   // Done
