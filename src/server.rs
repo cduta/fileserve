@@ -4,6 +4,7 @@ use std::net::TcpListener;
 use std::fs;
 use std::io::prelude::*;
 use std::net::TcpStream;
+use std::os::unix::ffi::OsStrExt;
 
 mod threadpool;
 mod error;
@@ -91,6 +92,31 @@ fn compile_response(status_line: &str, contents: Vec<u8>) -> Vec<u8> {
    &contents].concat()
 }
 
+fn dir(path: String) -> Result<Vec<u8>, ServerError>  {
+  let (mut dirs, mut files): (Vec<Vec<u8>>,Vec<Vec<u8>>) = fs::read_dir(path)?.fold(
+    (Vec::new(),Vec::new()),
+    |mut acc, r_entry| {
+      match r_entry {
+        Ok(entry) => {
+          match entry.metadata() {
+            Ok(md) if md.is_dir()  => acc.0.push(entry.file_name().as_bytes().to_vec()),
+            Ok(md) if md.is_file() => acc.1.push(entry.file_name().as_bytes().to_vec()),
+            Ok(_)                  => println!("List Dir Error: {:?} is neither file nor dir", entry.file_name()),
+            Err(e)                 => println!("List Dir Error: {}", e.to_string())
+          } acc
+        },
+        Err(e)    => { println!("List Dir Error: {}", e.to_string()); acc }
+      }
+    }
+  );
+
+  dirs.sort();
+  dirs = dirs.into_iter().map(|s| { [s,"/".as_bytes().to_vec()].concat() }).collect();
+  files.sort();
+  dirs.append(files.as_mut());
+  Ok(dirs.into_iter().fold(Vec::new(), |mut acc: Vec<u8>, mut entry| { acc.append(&mut entry); acc.append("<br>".as_bytes().to_vec().as_mut()); acc }))
+}
+
 fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
   let mut buffer = [0; 8096];
 
@@ -108,17 +134,17 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
   let not_found = "HTTP/1.1 404 NOT FOUND";
 
   // Evaluate request
-  let (status_line, contents) = match request.url.as_str() {
-    url if url.starts_with("/static/icons")
-        && (url.ends_with(".webmanifest")
-         || url.ends_with(".webp")
-         || url.ends_with(".ico")
-         || url.ends_with(".svg")
-         || url.ends_with(".jpg")
-         || url.ends_with(".png")
-         || url.ends_with(".xml")) => {(ok       , fs::read(url.chars().skip(1).collect::<String>())?)},
-    "/"                            => {(ok       , fs::read("hello.html")?)},
-    _                              => {(not_found, fs::read("404.html")?)}
+  let (status_line, contents) = match request.url.chars().skip(1).collect::<String>() {
+    path if (path.starts_with("static/icons"))
+         && (path.ends_with(".webmanifest")
+          || path.ends_with(".webp")
+          || path.ends_with(".ico")
+          || path.ends_with(".svg")
+          || path.ends_with(".jpg")
+          || path.ends_with(".png")
+          || path.ends_with(".xml"))   => {(ok, fs::read(path)?)},
+    path if request.url.ends_with("/") => {(ok, fs::read_to_string("files.html")?.replace("{{Entries}}", String::from_utf8(dir(format!("files/{path}"))?)?.as_str()).as_bytes().to_vec())},
+    _                                  => {(not_found, "Woops".as_bytes().to_vec())}
   };
 
   // Respond

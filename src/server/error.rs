@@ -9,9 +9,9 @@ pub enum ServerError {
 impl fmt::Debug for ServerError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
-      Self::TransportError(e) => write!(f, "TransportError {}" ,  e),
-      Self::ConvertError(e)   => write!(f, "ConvertError {}"   ,  e),
-      Self::HTTPParseError(e) => write!(f, "HTTPParseError {}" ,  e)
+      Self::TransportError(e) => write!(f, "TransportError {}",  e),
+      Self::ConvertError(e)   => write!(f, "ConvertError {}"  ,  e),
+      Self::HTTPParseError(e) => write!(f, "HTTPParseError {}",  e)
     }
   }
 }
@@ -19,9 +19,9 @@ impl fmt::Debug for ServerError {
 impl fmt::Display for ServerError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
-      Self::TransportError(e) => write!(f, "TransportError {}" ,  e),
-      Self::ConvertError(e)   => write!(f, "ConvertError {}"   ,  e),
-      Self::HTTPParseError(e) => write!(f, "HTTPParseError {}" ,  e)
+      Self::TransportError(e) => write!(f, "TransportError {}",  e),
+      Self::ConvertError(e)   => write!(f, "ConvertError {}"  ,  e),
+      Self::HTTPParseError(e) => write!(f, "HTTPParseError {}",  e)
     }
   }
 }
