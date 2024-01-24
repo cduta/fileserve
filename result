@@ -1,0 +1,261 @@
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /duckdb.jpg
+Settings: {"DNT": " 1", "Accept": " text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8", "Sec-Fetch-Dest": " document", "Host": " 127.0.0.1:8000", "Sec-Fetch-Mode": " navigate", "Sec-Fetch-User": " ?1", "Upgrade-Insecure-Requests": " 1", "Pragma": " no-cache", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Accept-Language": " en-US,en;q=0.5", "Connection": " keep-alive", "Cache-Control": " no-cache", "Sec-Fetch-Site": " none", "Accept-Encoding": " gzip, deflate, br"}
+### END REQUEST ###
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /duckdb.jpg
+Settings: {"Upgrade-Insecure-Requests": " 1", "Sec-Fetch-User": " ?1", "Host": " 127.0.0.1:8000", "Cache-Control": " no-cache", "Accept-Encoding": " gzip, deflate, br", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Accept": " text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8", "DNT": " 1", "Accept-Language": " en-US,en;q=0.5", "Sec-Fetch-Dest": " document", "Pragma": " no-cache", "Sec-Fetch-Mode": " navigate", "Connection": " keep-alive", "Sec-Fetch-Site": " none"}
+### END REQUEST ###
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Sec-Fetch-Mode": " no-cors", "DNT": " 1", "Cache-Control": " no-cache", "Sec-Fetch-Site": " same-origin", "Accept-Encoding": " gzip, deflate, br", "Connection": " keep-alive", "Sec-Fetch-Dest": " image", "Accept-Language": " en-US,en;q=0.5", "Accept": " image/avif,image/webp,*/*", "Host": " 127.0.0.1:8000", "Pragma": " no-cache", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Connection": " keep-alive", "Accept-Encoding": " gzip, deflate, br", "Sec-Fetch-Mode": " no-cors", "DNT": " 1", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Accept": " image/avif,image/webp,*/*", "Sec-Fetch-Site": " same-origin", "Host": " 127.0.0.1:8000", "Sec-Fetch-Dest": " image", "Pragma": " no-cache", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "Cache-Control": " no-cache", "Accept-Language": " en-US,en;q=0.5"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Accept": " image/avif,image/webp,*/*", "Accept-Encoding": " gzip, deflate, br", "Sec-Fetch-Dest": " image", "Sec-Fetch-Site": " same-origin", "Pragma": " no-cache", "DNT": " 1", "Sec-Fetch-Mode": " no-cors", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Connection": " keep-alive", "Host": " 127.0.0.1:8000", "Accept-Language": " en-US,en;q=0.5", "Cache-Control": " no-cache", "Referer": " http://127.0.0.1:8000/duckdb.jpg"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Sec-Fetch-Dest": " image", "Sec-Fetch-Site": " same-origin", "Accept": " image/avif,image/webp,*/*", "Host": " 127.0.0.1:8000", "Connection": " keep-alive", "Pragma": " no-cache", "Accept-Encoding": " gzip, deflate, br", "DNT": " 1", "Cache-Control": " no-cache", "Sec-Fetch-Mode": " no-cors", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "Accept-Language": " en-US,en;q=0.5"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Referer": " http://127.0.0.1:8000/duckdb.jpg", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Connection": " keep-alive", "Sec-Fetch-Dest": " image", "Accept-Language": " en-US,en;q=0.5", "Accept": " image/avif,image/webp,*/*", "Sec-Fetch-Mode": " no-cors", "Sec-Fetch-Site": " same-origin", "Pragma": " no-cache", "Cache-Control": " no-cache", "Accept-Encoding": " gzip, deflate, br", "DNT": " 1", "Host": " 127.0.0.1:8000"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Pragma": " no-cache", "DNT": " 1", "Accept-Language": " en-US,en;q=0.5", "Accept-Encoding": " gzip, deflate, br", "Sec-Fetch-Mode": " no-cors", "Accept": " image/avif,image/webp,*/*", "Connection": " keep-alive", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Sec-Fetch-Site": " same-origin", "Host": " 127.0.0.1:8000", "Cache-Control": " no-cache", "Sec-Fetch-Dest": " image"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Pragma": " no-cache", "Sec-Fetch-Mode": " no-cors", "Sec-Fetch-Dest": " image", "Host": " 127.0.0.1:8000", "Accept": " image/avif,image/webp,*/*", "Accept-Language": " en-US,en;q=0.5", "Sec-Fetch-Site": " same-origin", "Cache-Control": " no-cache", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "DNT": " 1", "Accept-Encoding": " gzip, deflate, br", "Connection": " keep-alive"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Host": " 127.0.0.1:8000", "Sec-Fetch-Site": " same-origin", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "Sec-Fetch-Mode": " no-cors", "Accept-Encoding": " gzip, deflate, br", "Accept": " image/avif,image/webp,*/*", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Connection": " keep-alive", "Sec-Fetch-Dest": " image", "Accept-Language": " en-US,en;q=0.5", "Pragma": " no-cache", "DNT": " 1", "Cache-Control": " no-cache"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Cache-Control": " no-cache", "Accept-Language": " en-US,en;q=0.5", "Connection": " keep-alive", "Accept": " image/avif,image/webp,*/*", "Sec-Fetch-Dest": " image", "DNT": " 1", "Host": " 127.0.0.1:8000", "Accept-Encoding": " gzip, deflate, br", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "Pragma": " no-cache", "Sec-Fetch-Mode": " no-cors", "Sec-Fetch-Site": " same-origin", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Accept-Encoding": " gzip, deflate, br", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "Accept-Language": " en-US,en;q=0.5", "Sec-Fetch-Site": " same-origin", "Pragma": " no-cache", "Sec-Fetch-Dest": " image", "Sec-Fetch-Mode": " no-cors", "Host": " 127.0.0.1:8000", "Accept": " image/avif,image/webp,*/*", "DNT": " 1", "Connection": " keep-alive", "Cache-Control": " no-cache"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /duckdb.j
+Settings: {"Sec-Fetch-Mode": " navigate", "Sec-Fetch-Site": " none", "Accept-Language": " en-US,en;q=0.5", "DNT": " 1", "Connection": " keep-alive", "Accept-Encoding": " gzip, deflate, br", "Sec-Fetch-Dest": " document", "Host": " 127.0.0.1:8000", "Upgrade-Insecure-Requests": " 1", "Pragma": " no-cache", "Cache-Control": " no-cache", "Sec-Fetch-User": " ?1", "Accept": " text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0"}
+### END REQUEST ###
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Accept-Encoding": " gzip, deflate, br", "Host": " 127.0.0.1:8000", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Accept": " image/avif,image/webp,*/*", "Connection": " keep-alive", "Sec-Fetch-Dest": " image", "DNT": " 1", "Sec-Fetch-Site": " same-origin", "Referer": " http://127.0.0.1:8000/duckdb.j", "Pragma": " no-cache", "Cache-Control": " no-cache", "Sec-Fetch-Mode": " no-cors", "Accept-Language": " en-US,en;q=0.5"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Connection": " keep-alive", "Host": " 127.0.0.1:8000", "DNT": " 1", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Sec-Fetch-Dest": " image", "Accept": " image/avif,image/webp,*/*", "Sec-Fetch-Mode": " no-cors", "Sec-Fetch-Site": " same-origin", "Referer": " http://127.0.0.1:8000/duckdb.j", "Accept-Language": " en-US,en;q=0.5", "Pragma": " no-cache", "Cache-Control": " no-cache", "Accept-Encoding": " gzip, deflate, br"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Sec-Fetch-Site": " same-origin", "Accept": " image/avif,image/webp,*/*", "Host": " 127.0.0.1:8000", "Sec-Fetch-Dest": " image", "Accept-Language": " en-US,en;q=0.5", "DNT": " 1", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Referer": " http://127.0.0.1:8000/duckdb.j", "Connection": " keep-alive", "Pragma": " no-cache", "Cache-Control": " no-cache", "Accept-Encoding": " gzip, deflate, br", "Sec-Fetch-Mode": " no-cors"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Connection": " keep-alive", "Sec-Fetch-Mode": " no-cors", "Cache-Control": " no-cache", "Accept-Language": " en-US,en;q=0.5", "Sec-Fetch-Site": " same-origin", "Pragma": " no-cache", "Referer": " http://127.0.0.1:8000/duckdb.j", "Host": " 127.0.0.1:8000", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Sec-Fetch-Dest": " image", "Accept": " image/avif,image/webp,*/*", "Accept-Encoding": " gzip, deflate, br", "DNT": " 1"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Accept": " image/avif,image/webp,*/*", "Sec-Fetch-Mode": " no-cors", "Connection": " keep-alive", "Host": " 127.0.0.1:8000", "Accept-Encoding": " gzip, deflate, br", "Accept-Language": " en-US,en;q=0.5", "DNT": " 1", "Cache-Control": " no-cache", "Sec-Fetch-Dest": " image", "Referer": " http://127.0.0.1:8000/duckdb.j", "Sec-Fetch-Site": " same-origin", "Pragma": " no-cache"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Sec-Fetch-Site": " same-origin", "Accept-Language": " en-US,en;q=0.5", "DNT": " 1", "Connection": " keep-alive", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Host": " 127.0.0.1:8000", "Sec-Fetch-Mode": " no-cors", "Sec-Fetch-Dest": " image", "Cache-Control": " no-cache", "Pragma": " no-cache", "Accept-Encoding": " gzip, deflate, br", "Accept": " image/avif,image/webp,*/*", "Referer": " http://127.0.0.1:8000/duckdb.j"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Accept-Encoding": " gzip, deflate, br", "DNT": " 1", "Cache-Control": " no-cache", "Connection": " keep-alive", "Referer": " http://127.0.0.1:8000/duckdb.j", "Accept": " image/avif,image/webp,*/*", "Sec-Fetch-Dest": " image", "Sec-Fetch-Site": " same-origin", "Pragma": " no-cache", "Accept-Language": " en-US,en;q=0.5", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Sec-Fetch-Mode": " no-cors", "Host": " 127.0.0.1:8000"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Connection": " keep-alive", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "DNT": " 1", "Sec-Fetch-Dest": " image", "Accept-Language": " en-US,en;q=0.5", "Accept": " image/avif,image/webp,*/*", "Sec-Fetch-Mode": " no-cors", "Host": " 127.0.0.1:8000", "Referer": " http://127.0.0.1:8000/duckdb.j", "Cache-Control": " no-cache", "Pragma": " no-cache", "Accept-Encoding": " gzip, deflate, br", "Sec-Fetch-Site": " same-origin"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Host": " 127.0.0.1:8000", "Sec-Fetch-Dest": " image", "Pragma": " no-cache", "Accept": " image/avif,image/webp,*/*", "Sec-Fetch-Site": " same-origin", "Connection": " keep-alive", "Accept-Language": " en-US,en;q=0.5", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Accept-Encoding": " gzip, deflate, br", "DNT": " 1", "Referer": " http://127.0.0.1:8000/duckdb.j", "Sec-Fetch-Mode": " no-cors", "Cache-Control": " no-cache"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Pragma": " no-cache", "DNT": " 1", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Connection": " keep-alive", "Host": " 127.0.0.1:8000", "Sec-Fetch-Site": " same-origin", "Cache-Control": " no-cache", "Accept": " image/avif,image/webp,*/*", "Accept-Encoding": " gzip, deflate, br", "Accept-Language": " en-US,en;q=0.5", "Referer": " http://127.0.0.1:8000/duckdb.j", "Sec-Fetch-Mode": " no-cors", "Sec-Fetch-Dest": " image"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Pragma": " no-cache", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Sec-Fetch-Dest": " image", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "DNT": " 1", "Sec-Fetch-Site": " same-origin", "Cache-Control": " no-cache", "Connection": " keep-alive", "Accept-Language": " en-US,en;q=0.5", "Accept-Encoding": " gzip, deflate, br", "Sec-Fetch-Mode": " no-cors", "Accept": " image/avif,image/webp,*/*", "Host": " 127.0.0.1:8000"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Cache-Control": " no-cache", "Accept-Language": " en-US,en;q=0.5", "DNT": " 1", "Accept": " image/avif,image/webp,*/*", "Connection": " keep-alive", "Sec-Fetch-Mode": " no-cors", "Accept-Encoding": " gzip, deflate, br", "Sec-Fetch-Dest": " image", "Sec-Fetch-Site": " same-origin", "Pragma": " no-cache", "Host": " 127.0.0.1:8000", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Referer": " http://127.0.0.1:8000/duckdb.jpg"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Connection": " keep-alive", "Cache-Control": " no-cache", "Sec-Fetch-Site": " same-origin", "Accept-Language": " en-US,en;q=0.5", "Accept-Encoding": " gzip, deflate, br", "Sec-Fetch-Mode": " no-cors", "DNT": " 1", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "Sec-Fetch-Dest": " image", "Host": " 127.0.0.1:8000", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Accept": " image/avif,image/webp,*/*", "Pragma": " no-cache"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Pragma": " no-cache", "Cache-Control": " no-cache", "Sec-Fetch-Site": " same-origin", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "DNT": " 1", "Host": " 127.0.0.1:8000", "Accept": " image/avif,image/webp,*/*", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Connection": " keep-alive", "Accept-Language": " en-US,en;q=0.5", "Sec-Fetch-Dest": " image", "Sec-Fetch-Mode": " no-cors", "Accept-Encoding": " gzip, deflate, br"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Sec-Fetch-Dest": " image", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "DNT": " 1", "Pragma": " no-cache", "Accept": " image/avif,image/webp,*/*", "Sec-Fetch-Site": " same-origin", "Host": " 127.0.0.1:8000", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "Accept-Language": " en-US,en;q=0.5", "Cache-Control": " no-cache", "Connection": " keep-alive", "Sec-Fetch-Mode": " no-cors", "Accept-Encoding": " gzip, deflate, br"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Connection": " keep-alive", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Accept-Language": " en-US,en;q=0.5", "Accept": " image/avif,image/webp,*/*", "Accept-Encoding": " gzip, deflate, br", "Sec-Fetch-Site": " same-origin", "Pragma": " no-cache", "Sec-Fetch-Dest": " image", "Host": " 127.0.0.1:8000", "Sec-Fetch-Mode": " no-cors", "Cache-Control": " no-cache", "DNT": " 1", "Referer": " http://127.0.0.1:8000/duckdb.jpg"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Accept": " image/avif,image/webp,*/*", "Pragma": " no-cache", "Accept-Encoding": " gzip, deflate, br", "Connection": " keep-alive", "Cache-Control": " no-cache", "Accept-Language": " en-US,en;q=0.5", "Sec-Fetch-Mode": " no-cors", "DNT": " 1", "Sec-Fetch-Dest": " image", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Sec-Fetch-Site": " same-origin", "Host": " 127.0.0.1:8000"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Host": " 127.0.0.1:8000", "Accept": " image/avif,image/webp,*/*", "Sec-Fetch-Mode": " no-cors", "Accept-Encoding": " gzip, deflate, br", "Connection": " keep-alive", "Cache-Control": " no-cache", "Sec-Fetch-Dest": " image", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "DNT": " 1", "Sec-Fetch-Site": " same-origin", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "Accept-Language": " en-US,en;q=0.5", "Pragma": " no-cache"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Pragma": " no-cache", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0", "DNT": " 1", "Accept-Language": " en-US,en;q=0.5", "Accept": " image/avif,image/webp,*/*", "Accept-Encoding": " gzip, deflate, br", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "Sec-Fetch-Dest": " image", "Sec-Fetch-Mode": " no-cors", "Connection": " keep-alive", "Cache-Control": " no-cache", "Host": " 127.0.0.1:8000", "Sec-Fetch-Site": " same-origin"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)
+HTTP request delegated to worker 0
+### BEGIN REQUEST ###
+Request Type: GET
+Version: HTTP/1.1
+URL: /favicon.ico
+Settings: {"Sec-Fetch-Mode": " no-cors", "Connection": " keep-alive", "Sec-Fetch-Dest": " image", "Accept-Encoding": " gzip, deflate, br", "Host": " 127.0.0.1:8000", "Accept-Language": " en-US,en;q=0.5", "Sec-Fetch-Site": " same-origin", "Pragma": " no-cache", "Accept": " image/avif,image/webp,*/*", "DNT": " 1", "Referer": " http://127.0.0.1:8000/duckdb.jpg", "Cache-Control": " no-cache", "User-Agent": " Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0"}
+### END REQUEST ###
+Request failed: TransportError No such file or directory (os error 2)

@@ -92,8 +92,9 @@ fn compile_response(status_line: &str, contents: Vec<u8>) -> Vec<u8> {
    &contents].concat()
 }
 
-fn dir(path: String) -> Result<Vec<u8>, ServerError>  {
-  let (mut dirs, mut files): (Vec<Vec<u8>>,Vec<Vec<u8>>) = fs::read_dir(path)?.fold(
+fn dir(relative_path: String) -> Result<Vec<u8>, ServerError>  {
+  let absolute_path = format!("files/{relative_path}");
+  let (mut dirs, mut files): (Vec<Vec<u8>>,Vec<Vec<u8>>) = fs::read_dir(&absolute_path)?.fold(
     (Vec::new(),Vec::new()),
     |mut acc, r_entry| {
       match r_entry {
@@ -111,10 +112,11 @@ fn dir(path: String) -> Result<Vec<u8>, ServerError>  {
   );
 
   dirs.sort();
-  dirs = dirs.into_iter().map(|s| { [s,"/".as_bytes().to_vec()].concat() }).collect();
+  dirs = dirs.into_iter().map(|s| ["<a href=\"".as_bytes().to_vec(),s.clone(),"/\">".as_bytes().to_vec(),s,"/</a>".as_bytes().to_vec()].concat()).collect();
   files.sort();
+  files = files.into_iter().map(|s| { let file_path = [relative_path.as_bytes().to_vec(),s.clone()].concat(); ["<div onmouseenter=\"javascript:show_preview('".as_bytes().to_vec(),file_path,"');\" onmouseleave=\"javascript:hide_preview();\">".as_bytes().to_vec(),s,"</div>".as_bytes().to_vec()].concat() } ).collect();
   dirs.append(files.as_mut());
-  Ok(dirs.into_iter().fold(Vec::new(), |mut acc: Vec<u8>, mut entry| { acc.append(&mut entry); acc.append("<br>".as_bytes().to_vec().as_mut()); acc }))
+  Ok(dirs.into_iter().fold(Vec::new(), |mut acc: Vec<u8>, mut entry| { acc.append(&mut entry); acc }))
 }
 
 fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
@@ -135,15 +137,22 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
 
   // Evaluate request
   let (status_line, contents) = match request.url.chars().skip(1).collect::<String>() {
-    path if (path.starts_with("static/icons"))
+    path if !path.contains("..")
          && (path.ends_with(".webmanifest")
           || path.ends_with(".webp")
           || path.ends_with(".ico")
           || path.ends_with(".svg")
           || path.ends_with(".jpg")
           || path.ends_with(".png")
-          || path.ends_with(".xml"))   => {(ok, fs::read(path)?)},
-    path if request.url.ends_with("/") => {(ok, fs::read_to_string("files.html")?.replace("{{Entries}}", String::from_utf8(dir(format!("files/{path}"))?)?.as_str()).as_bytes().to_vec())},
+          || path.ends_with(".xml"))   => {
+            if path.starts_with("static/icons") {
+              (ok, fs::read(path)?)
+            } else {
+              (ok, fs::read(format!("files/{path}"))?)
+            }
+          },
+    path if !path.contains("..")
+         && request.url.ends_with("/") => {(ok, fs::read_to_string("files.html")?.replace("{{Entries}}", String::from_utf8(dir(path)?)?.as_str()).as_bytes().to_vec())},
     _                                  => {(not_found, "Woops".as_bytes().to_vec())}
   };
 

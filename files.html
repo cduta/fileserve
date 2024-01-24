@@ -26,6 +26,43 @@
 
   <!-- Title -->
   <title>Files</title>
+
+  <style>
+  /* The overlay effect - lays on top of the container and over the image */
+  .overlay {
+    display: block;
+    position: absolute;
+    margin-left: auto;
+    margin-right: auto;
+    width: 80%;
+    height: 80%;
+    top: 0;
+    right: 0;
+    left: 0;
+    bottom: 0;
+  }
+  </style>
+  <script>
+  const preview_id = "image-preview";
+  function show_preview(path) {
+    if (path.endsWith(".jpg")
+    ||  path.endsWith(".png")
+    ||  path.endsWith(".svg")
+    ||  path.endsWith(".webp")) {
+      var img = document.createElement("img");
+      img.src = path;
+      img.id = preview_id;
+      img.classList.add("overlay");
+      document.body.appendChild(img);
+    }
+  }
+  function hide_preview() {
+    var preview = document.getElementById(preview_id);
+    if (preview != null) {
+      document.body.removeChild(preview);
+    }
+  }
+  </script>
 </head>
 
 <body>
