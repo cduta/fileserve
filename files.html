@@ -11,44 +11,69 @@
   <meta http-equiv="pragma" content="no-cache" />                       <!-- Same as cache-control: no cache (for compatibility) -->
 
   <!-- Icons -->
-  <link rel="apple-touch-icon" href="static/icons/apple-touch-icon.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="static/icons/apple-touch-icon.png" />
-  <link rel="icon" type="image/png" sizes="32x32" href="static/icons/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="static/icons/favicon-16x16.png" />
-  <link rel="mask-icon" href="static/icons/safari-pinned-tab.svg" c="" />
-  <link rel="shortcut icon" href="static/icons/favicon.ico" />
-  <meta property="og:image" content="static/icons/sharingduckdb.jpg" />
-  <link rel="manifest" href="static/icons/site.webmanifest" />
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16x16.png" />
+  <link rel="mask-icon" href="/static/icons/safari-pinned-tab.svg" c="" />
+  <link rel="shortcut icon" href="/static/icons/favicon.ico" />
+  <meta property="og:image" content="/static/icons/sharingduckdb.jpg" />
+  <link rel="manifest" href="/static/icons/site.webmanifest" />
 
   <!-- Meta settings -->
   <meta name="apple-mobile-web-app-title" content="Files" />
-  <meta name="msapplication-config" coontent="static/icons/browserconfig.xml" />
+  <meta name="msapplication-config" coontent="/static/icons/browserconfig.xml" />
 
   <!-- Title -->
   <title>Files</title>
 
   <style>
-  /* The overlay effect - lays on top of the container and over the image */
+  .btnLink {
+    font: initial monospace;
+    background-color: transparent;
+    color: #000;
+    text-decoration: none;
+    display: inline-block;
+    margin-bottom: 0;
+    font-size: 14px;
+    font-weight: normal;
+    line-height: 1.428571429;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-radius: 4px;
+  }
+
+  .btnLink:hover {
+    background-color: #000;
+    color: #fff;
+  }
+
   .overlay {
     display: block;
     position: absolute;
     margin-left: auto;
     margin-right: auto;
     width: 80%;
-    height: 80%;
-    top: 0;
+    top: 50%;
     right: 0;
     left: 0;
     bottom: 0;
+    transform: translateY(-50%);
   }
   </style>
   <script>
   const preview_id = "image-preview";
+
+  // Show preview
   function show_preview(path) {
-    if (path.endsWith(".jpg")
-    ||  path.endsWith(".png")
-    ||  path.endsWith(".svg")
-    ||  path.endsWith(".webp")) {
+    if (document.getElementById(preview_id) == null
+    && (path.endsWith(".jpg")
+     || path.endsWith(".png")
+     || path.endsWith(".svg")
+     || path.endsWith(".webp"))) {
       var img = document.createElement("img");
       img.src = path;
       img.id = preview_id;
@@ -56,16 +81,31 @@
       document.body.appendChild(img);
     }
   }
+
+  // Hide preview
   function hide_preview() {
     var preview = document.getElementById(preview_id);
     if (preview != null) {
       document.body.removeChild(preview);
     }
   }
+
+  // Download file
+  function download(path) {
+    const link = document.createElement("a");
+    link.href = path;
+    link.download = path;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
   </script>
 </head>
 
 <body>
-  {{Entries}}
+{{Entries}}
+<button>Upload</button>
+<button>Download Files</button>
+<button>Download Files + Directories</button>
 </body>
 </html>

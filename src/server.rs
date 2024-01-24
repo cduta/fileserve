@@ -112,11 +112,11 @@ fn dir(relative_path: String) -> Result<Vec<u8>, ServerError>  {
   );
 
   dirs.sort();
-  dirs = dirs.into_iter().map(|s| ["<a href=\"".as_bytes().to_vec(),s.clone(),"/\">".as_bytes().to_vec(),s,"/</a>".as_bytes().to_vec()].concat()).collect();
+  dirs = dirs.into_iter().map(|s| ["<a href=\"".as_bytes().to_vec(),s.clone(),"/\"><button class=\"btnLink\">".as_bytes().to_vec(),s,"/</button></a>".as_bytes().to_vec()].concat()).collect();
   files.sort();
-  files = files.into_iter().map(|s| { let file_path = [relative_path.as_bytes().to_vec(),s.clone()].concat(); ["<div onmouseenter=\"javascript:show_preview('".as_bytes().to_vec(),file_path,"');\" onmouseleave=\"javascript:hide_preview();\">".as_bytes().to_vec(),s,"</div>".as_bytes().to_vec()].concat() } ).collect();
+  files = files.into_iter().map(|s| ["<button class=\"btnLink\" onclick=\"javascript:download('".as_bytes().to_vec(),s.clone(),"')\" onmouseenter=\"javascript:show_preview('".as_bytes().to_vec(),s.clone(),"');\" onmousedown=\"javascript:show_preview('".as_bytes().to_vec(),s.clone(),"');\"') onmouseleave=\"javascript:hide_preview();\" onmouseout=\"javascript:hide_preview();\" onmouseup=\"javascript:hide_preview();\">".as_bytes().to_vec(),s,"</button>".as_bytes().to_vec()].concat() ).collect();
   dirs.append(files.as_mut());
-  Ok(dirs.into_iter().fold(Vec::new(), |mut acc: Vec<u8>, mut entry| { acc.append(&mut entry); acc }))
+  Ok(dirs.into_iter().fold(Vec::new(), |mut acc: Vec<u8>, mut entry| { acc.append(&mut entry); acc.append("<br>".as_bytes().to_vec().as_mut()); acc }))
 }
 
 fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
@@ -138,22 +138,15 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
   // Evaluate request
   let (status_line, contents) = match request.url.chars().skip(1).collect::<String>() {
     path if !path.contains("..")
-         && (path.ends_with(".webmanifest")
-          || path.ends_with(".webp")
-          || path.ends_with(".ico")
-          || path.ends_with(".svg")
-          || path.ends_with(".jpg")
-          || path.ends_with(".png")
-          || path.ends_with(".xml"))   => {
+         && request.url.ends_with("/") => {(ok, fs::read_to_string("files.html")?.replace("{{Entries}}", String::from_utf8(dir(path)?)?.as_str()).as_bytes().to_vec())},
+    path if !path.contains("..")       => {
             if path.starts_with("static/icons") {
               (ok, fs::read(path)?)
             } else {
               (ok, fs::read(format!("files/{path}"))?)
             }
           },
-    path if !path.contains("..")
-         && request.url.ends_with("/") => {(ok, fs::read_to_string("files.html")?.replace("{{Entries}}", String::from_utf8(dir(path)?)?.as_str()).as_bytes().to_vec())},
-    _                                  => {(not_found, "Woops".as_bytes().to_vec())}
+    _ => {(not_found, "Woops".as_bytes().to_vec())}
   };
 
   // Respond
@@ -176,7 +169,7 @@ fn listen(listener: TcpListener, pool: ThreadPool) {
 pub fn run() -> i32 {
   let mut rc = 0;
 
-  match TcpListener::bind("127.0.0.1:8000") {
+  match TcpListener::bind("192.168.178.43:8000") {
     Ok(listener) => {
       match ThreadPool::new(16) {
         Ok(pool) => listen(listener, pool),
