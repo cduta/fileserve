@@ -12,12 +12,13 @@ mod error;
 use threadpool::ThreadPool;
 use error::ServerError;
 
-enum HTTPRequestType { GET }
+enum HTTPRequestType { GET, POST }
 
 impl Display for HTTPRequestType {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      HTTPRequestType::GET  => write!(f, "GET")
+      HTTPRequestType::GET  => write!(f, "GET"),
+      HTTPRequestType::POST => write!(f, "POST")
     }
   }
 }
@@ -28,6 +29,7 @@ impl TryFrom<&str> for HTTPRequestType {
     fn try_from(value: &str) -> Result<Self, Self::Error> {
       match value {
         "GET"  => Ok(HTTPRequestType::GET),
+        "POST" => Ok(HTTPRequestType::POST),
         _      => Err(ServerError::HTTPParseError(format!("HTTP Parse Error: Cannot convert {value} to HTTPRequestType")))
       }
     }
@@ -36,10 +38,10 @@ impl TryFrom<&str> for HTTPRequestType {
 type HTTPSettings = HashMap<String,String>;
 
 struct Request {
-  r_type  : HTTPRequestType,
-  url     : String,
-  version : String,
-  settings: HTTPSettings
+  r_type : HTTPRequestType,
+  url    : String,
+  version: String,
+  content: HTTPSettings
 }
 
 impl Request {
@@ -55,16 +57,27 @@ impl Request {
 
     if header.len() != 3 { return Err(ServerError::HTTPParseError(format!("HTTP Parse Error: Malformed header ({})", lines[0]))) }
 
-    let settings = lines
+    let content = lines
       .iter()
       .skip(1)
       .fold(HashMap::new(), |mut acc, s| {
         if let Some((name, value)) = s.split_once(':') {
-          if let Some(prev) = acc.insert(name.to_string(), value.to_string()) {
+          if let Some(prev) = acc.insert(name.to_string(), value.trim().to_string()) {
             println!("HTTP Parse Warning: Duplicate entry {name} replaces {prev} with {name}")
           }
         } else {
-          println!("HTTP Parse Error: Malformed settings string ({s})");
+          let name = "body".to_string();
+          if let Some(body_size_string) = acc.get("body-size") {
+            match body_size_string.parse::<usize>() {
+              Ok(body_size) =>
+                if let Some(prev) = acc.insert(name.clone(), s.chars().take(body_size).collect::<String>()) {
+                  println!("HTTP Parse Warning: Duplicate entry {name} replaces {prev} with {s}")
+                }
+              Err(e) => println!("HTTP Parse Error: Malformed body-size ({body_size_string}) can't be converted to usize because: {e}")
+            }
+          } else {
+            println!("HTTP Parse Error: Found request body ({s}) but header did not provide `body size`");
+          }
         }
         acc
       });
@@ -73,14 +86,14 @@ impl Request {
       r_type : HTTPRequestType::try_from(header[0])?,
       url    : header[1].to_string(),
       version: header[2].to_string(),
-      settings
+      content
     })
   }
 }
 
 impl Display for Request {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "Request Type: {}\nVersion: {}\nURL: {}\nSettings: {:?}", self.r_type, self.version, self.url, self.settings)
+    write!(f, "Request Type: {}\nVersion: {}\nURL: {}\nSettings: {:?}", self.r_type, self.version, self.url, self.content)
   }
 }
 
@@ -124,29 +137,37 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
 
   // Get Request
   stream.read(&mut buffer)?;
-
-  // Parse Request (Tokenize: "<GET|...> <URL> <HTTP/\d+.\d+>\n(<field>:<value>\n)+")
-  let request = Request::parse(String::from_utf8(buffer.to_vec())?)?;
+  let request_string = String::from_utf8(buffer.to_vec())?;
 
   println!("### BEGIN REQUEST ###");
-  println!("{request}");
+  println!("{request_string}");
   println!("### END REQUEST ###");
+
+  // Parse Request (Tokenize: "<GET|...> <URL> <HTTP/\d+.\d+>\n(<field>:<value>\n)+")
+  let request = Request::parse(request_string)?;
 
   let ok        = "HTTP/1.1 200 OK";
   let not_found = "HTTP/1.1 404 NOT FOUND";
 
   // Evaluate request
-  let (status_line, contents) = match request.url.chars().skip(1).collect::<String>() {
-    path if !path.contains("..")
-         && request.url.ends_with("/") => {(ok, fs::read_to_string("files.html")?.replace("{{Entries}}", String::from_utf8(dir(path)?)?.as_str()).as_bytes().to_vec())},
-    path if !path.contains("..")       => {
-            if path.starts_with("static/icons") {
-              (ok, fs::read(path)?)
-            } else {
-              (ok, fs::read(format!("files/{path}"))?)
-            }
-          },
-    _ => {(not_found, "Woops".as_bytes().to_vec())}
+  let (status_line, contents) =
+  match request.r_type {
+    HTTPRequestType::GET =>
+      match request.url.chars().skip(1).collect::<String>() {
+        path if !path.contains("..")
+            && request.url.ends_with("/") => {(ok, fs::read_to_string("files.html")?.replace("{{Entries}}", String::from_utf8(dir(path)?)?.as_str()).as_bytes().to_vec())},
+        path if !path.contains("..")       => {
+                if path.starts_with("static/icons") {
+                  (ok, fs::read(path)?)
+                } else {
+                  (ok, fs::read(format!("files/{path}"))?)
+                }
+              },
+        _ => {(not_found, "Woops".as_bytes().to_vec())}
+      },
+    HTTPRequestType::POST => {
+      (ok, ":)".as_bytes().to_vec())
+    }
   };
 
   // Respond

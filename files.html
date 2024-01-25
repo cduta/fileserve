@@ -102,11 +102,18 @@
     link.click();
     document.body.removeChild(link);
   }
+
+  // Create folder
+  function create_dir() {
+    var action = "create_file";
+    fetch(prompt("Directory name?", ""), { method: "POST", headers: {"body-size": action.length}, body: action}).then(r => console.log(r));
+  }
   </script>
 </head>
 
 <body>
 {{Entries}}
+<button onclick="javascript:create_dir()">New Directory</button>
 <button>Upload</button>
 <button>Upload Directory</button>
 <button>Download Files</button>
