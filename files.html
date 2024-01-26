@@ -105,15 +105,24 @@
   // Create folder
   function create_dir() {
     var action = "create_file";
-    fetch(prompt("Directory name?", ""), { method: "POST", headers: {"body-size": action.length}, body: action}).then(r => location.reload());
+    fetch(prompt("Directory name?", ""), { method: "POST", headers: {"action": action}}).then(r => location.reload());
   }
+
+  // Upload file
+  // function create_dir() {
+  //   var action = "create_file";
+  //   fetch(prompt("Directory name?", ""), { method: "POST", headers: {"body-size": action.length}, body: action}).then(r => location.reload());
+  // }
   </script>
 </head>
 
 <body>
 {{Entries}}
 <button onclick="javascript:create_dir()">New Directory</button>
-<button>Upload</button>
+<form method="post" enctype="multipart/form-data">
+  <input name="file" type="file" multiple>
+  <button>Upload</button>
+</form>
 <!-- <button>Upload Directory</button>
 <button>Download Files</button>
 <button>Download Files + Directories</button>-->

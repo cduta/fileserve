@@ -45,10 +45,9 @@ struct Request {
 }
 
 impl Request {
-  fn parse(req_string: String) -> Result<Self,ServerError> {
+  fn parse_header(req_string: String) -> Result<Self,ServerError> {
     let lines = req_string
       .split("\r\n")
-      .filter(|s| !s.chars().all(|c| c == '\0'))
       .collect::<Vec<&str>>();
 
     if lines.is_empty() { return Err(ServerError::HTTPParseError(format!("HTTP Parse Error: Invalid request string ({req_string})"))) }
@@ -63,21 +62,10 @@ impl Request {
       .fold(HashMap::new(), |mut acc, s| {
         if let Some((name, value)) = s.split_once(':') {
           if let Some(prev) = acc.insert(name.to_string(), value.trim().to_string()) {
-            println!("HTTP Parse Warning: Duplicate entry {name} replaces {prev} with {name}")
+            println!("HTTP Parse Warning: Duplicate entry {name} replaces {prev} with {value}")
           }
         } else {
-          let name = "body".to_string();
-          if let Some(body_size_string) = acc.get("body-size") {
-            match body_size_string.parse::<usize>() {
-              Ok(body_size) =>
-                if let Some(prev) = acc.insert(name.clone(), s.chars().take(body_size).collect::<String>()) {
-                  println!("HTTP Parse Warning: Duplicate entry {name} replaces {prev} with {s}")
-                }
-              Err(e) => println!("HTTP Parse Error: Malformed body-size ({body_size_string}) can't be converted to usize because: {e}")
-            }
-          } else {
-            println!("HTTP Parse Error: Found request body ({s}) but header did not provide `body size`");
-          }
+          println!("HTTP Parse Warning: Malformed header or body ({s})");
         }
         acc
       });
@@ -133,31 +121,49 @@ fn dir(relative_path: String) -> Result<Vec<u8>, ServerError>  {
 }
 
 fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
-  let mut buffer = [0; 8096];
+  const BUFFER_SIZE: usize = 8096;
+  let mut buffer = [0; BUFFER_SIZE];
+  const HEADER_END: [u8; 4] = [13,10,13,10];
+
+  let mut header_string: String = String::new();
 
   // Get Request
   stream.read(&mut buffer)?;
-  let request_string = String::from_utf8(buffer.to_vec())?;
+
+  let mut i = 4;
+  for window in buffer.as_slice().windows(4) {
+    if  window[0] == HEADER_END[0]
+     && window[1] == HEADER_END[1]
+     && window[2] == HEADER_END[2]
+     && window[3] == HEADER_END[3] {
+      break;
+    }
+    header_string.push(char::from(window[0]));
+    i+=1;
+  }
+
+  let body = &buffer[i..];
 
   println!("### BEGIN REQUEST ###");
-  println!("{request_string}");
+  println!("{header_string}");
+  println!("\nBody\n----\n{}", String::from_utf8_lossy(body));
   println!("### END REQUEST ###");
 
-  // Parse Request (Tokenize: "<GET|...> <URL> <HTTP/\d+.\d+>\n(<field>:<value>\n)+")
-  let request = Request::parse(request_string)?;
+  // Parse Header (Tokenize: "<GET|...> <URL> <HTTP/\d+.\d+>\n(<field>:<value>\n)+")
+  let header = Request::parse_header(header_string)?;
 
   let ok        = "HTTP/1.1 200 OK";
   let not_found = "HTTP/1.1 404 NOT FOUND";
 
-  // Evaluate request
+  // Evaluate header
   let (status_line, contents) =
-    if request.url.contains("..") {
+    if header.url.contains("..") {
       (not_found, "Woops".as_bytes().to_vec())
     } else {
-      match request.r_type {
+      match header.r_type {
         HTTPRequestType::GET => {
-          let path = request.url.chars().skip(1).collect::<String>();
-          if request.url.ends_with("/") {
+          let path = header.url.chars().skip(1).collect::<String>();
+          if header.url.ends_with("/") {
             (ok, fs::read_to_string("files.html")?.replace("{{Entries}}", String::from_utf8(dir(path)?)?.as_str()).as_bytes().to_vec())
           } else if path.starts_with("static/icons") {
             (ok, fs::read(path)?)
@@ -166,7 +172,7 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
           }
         },
         HTTPRequestType::POST => {
-          let relative_path = ["files",request.url.as_str()].concat();
+          let relative_path = ["files",header.url.as_str()].concat();
           fs::create_dir(relative_path.clone())?;
           (ok, ["Directory ", relative_path.as_str(), " created..."].concat().as_bytes().to_vec())
         }
