@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::net::TcpListener;
-use std::fs;
+use std::{fs, io};
 use std::io::prelude::*;
 use std::net::TcpStream;
 use std::os::unix::ffi::OsStrExt;
@@ -151,24 +151,27 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
 
   // Evaluate request
   let (status_line, contents) =
-  match request.r_type {
-    HTTPRequestType::GET =>
-      match request.url.chars().skip(1).collect::<String>() {
-        path if !path.contains("..")
-            && request.url.ends_with("/") => {(ok, fs::read_to_string("files.html")?.replace("{{Entries}}", String::from_utf8(dir(path)?)?.as_str()).as_bytes().to_vec())},
-        path if !path.contains("..")       => {
-                if path.starts_with("static/icons") {
-                  (ok, fs::read(path)?)
-                } else {
-                  (ok, fs::read(format!("files/{path}"))?)
-                }
-              },
-        _ => {(not_found, "Woops".as_bytes().to_vec())}
-      },
-    HTTPRequestType::POST => {
-      (ok, ":)".as_bytes().to_vec())
-    }
-  };
+    if request.url.contains("..") {
+      (not_found, "Woops".as_bytes().to_vec())
+    } else {
+      match request.r_type {
+        HTTPRequestType::GET => {
+          let path = request.url.chars().skip(1).collect::<String>();
+          if request.url.ends_with("/") {
+            (ok, fs::read_to_string("files.html")?.replace("{{Entries}}", String::from_utf8(dir(path)?)?.as_str()).as_bytes().to_vec())
+          } else if path.starts_with("static/icons") {
+            (ok, fs::read(path)?)
+          } else {
+            (ok, fs::read(format!("files/{path}"))?)
+          }
+        },
+        HTTPRequestType::POST => {
+          let relative_path = ["files",request.url.as_str()].concat();
+          fs::create_dir(relative_path.clone())?;
+          (ok, ["Directory ", relative_path.as_str(), " created..."].concat().as_bytes().to_vec())
+        }
+      }
+    };
 
   // Respond
   stream.write_all(compile_response(status_line, contents).as_slice())?;
@@ -190,15 +193,27 @@ fn listen(listener: TcpListener, pool: ThreadPool) {
 pub fn run() -> i32 {
   let mut rc = 0;
 
-  match TcpListener::bind("192.168.178.43:8000") {
-    Ok(listener) => {
-      match ThreadPool::new(16) {
-        Ok(pool) => listen(listener, pool),
-        Err(e)   => { println!("Create Thread Pool Error: {e}"); rc = 1; }
+  if let Err(e) = fs::read_dir("files/") {
+    if e.kind() == io::ErrorKind::NotFound {
+      if let Err(e) = fs::create_dir("files/") {
+        println!("Initialize Server Error: {e}"); rc = 1;
       }
-    },
-    Err(e) => { println!("Could not start server: {e}"); rc = 2; }
+    } else if e.kind() != io::ErrorKind::AlreadyExists {
+      println!("Initialize Server Error: {e}"); rc = 2;
+    }
   }
-  println!("Shutting down...OK");
+
+  if rc == 0 {
+    match TcpListener::bind("192.168.178.43:8000") {
+      Ok(listener) => {
+        match ThreadPool::new(16) {
+          Ok(pool) => listen(listener, pool),
+          Err(e)   => { println!("Create Thread Pool Error: {e}"); rc = 3; }
+        }
+      },
+      Err(e) => { println!("Could not start server: {e}"); rc = 4; }
+    }
+    println!("Shutting down...OK");
+  }
   rc
 }
