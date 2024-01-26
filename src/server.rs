@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Display;
+use std::fs::File;
 use std::net::TcpListener;
 use std::{fs, io};
 use std::io::prelude::*;
@@ -60,7 +61,7 @@ impl Request {
       .iter()
       .skip(1)
       .fold(HashMap::new(), |mut acc, s| {
-        if let Some((name, value)) = s.split_once(':') {
+        if let Some((name, value)) = s.split_once(": ") {
           if let Some(prev) = acc.insert(name.to_string(), value.trim().to_string()) {
             println!("HTTP Parse Warning: Duplicate entry {name} replaces {prev} with {value}")
           }
@@ -142,11 +143,11 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
     i+=1;
   }
 
-  let body = &buffer[i..];
+  let mut body: Vec<u8> = buffer[i..].to_vec();
 
   println!("### BEGIN REQUEST ###");
   println!("{header_string}");
-  println!("\nBody\n----\n{}", String::from_utf8_lossy(body));
+  println!("\nBody\n----\n{}", String::from_utf8_lossy(&body));
   println!("### END REQUEST ###");
 
   // Parse Header (Tokenize: "<GET|...> <URL> <HTTP/\d+.\d+>\n(<field>:<value>\n)+")
@@ -158,11 +159,12 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
   // Evaluate header
   let (status_line, contents) =
     if header.url.contains("..") {
+      println!("Server Error: Indirection in path forbidden");
       (not_found, "Woops".as_bytes().to_vec())
     } else {
+      let path = header.url.chars().skip(1).collect::<String>();
       match header.r_type {
         HTTPRequestType::GET => {
-          let path = header.url.chars().skip(1).collect::<String>();
           if header.url.ends_with("/") {
             (ok, fs::read_to_string("files.html")?.replace("{{Entries}}", String::from_utf8(dir(path)?)?.as_str()).as_bytes().to_vec())
           } else if path.starts_with("static/icons") {
@@ -172,9 +174,55 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
           }
         },
         HTTPRequestType::POST => {
-          let relative_path = ["files",header.url.as_str()].concat();
-          fs::create_dir(relative_path.clone())?;
-          (ok, ["Directory ", relative_path.as_str(), " created..."].concat().as_bytes().to_vec())
+          if header.content.contains_key("Action") || header.content.contains_key("Content-Type") {
+            if let Some(action) = header.content.get("Action") {
+              match action.as_str() {
+                "create_file" => {
+                  let relative_path = ["files",header.url.as_str()].concat();
+                  fs::create_dir(relative_path.clone())?;
+                  (ok, ["Directory ", relative_path.as_str(), " created..."].concat().as_bytes().to_vec())
+                },
+                _ => {
+                  println!("Server Error: Invalid Action `{action}`");
+                  (not_found, "Woops".as_bytes().to_vec())
+                }
+              }
+            } else if let (Some(_content_type), Some(content_length)) = (header.content.get("Content-Type"),header.content.get("Content-Length")) {
+
+              let from_utf8_lossy = &String::from_utf8_lossy(&body);
+              let content_header = from_utf8_lossy.splitn(3, "\r\n").collect::<Vec<&str>>();
+              let _content_boundary = content_header[0];
+              let content_dispositions = content_header[1]
+               .split_once(": ")
+               .unwrap().1
+               .split("; ")
+               .fold(HashMap::new(), |mut acc, e| {
+                if let Some((key,value)) = e.split_once("=") {
+                  acc.insert(key, &value[1..value.len()-1]);
+                }
+                acc
+               });
+              let _content_type = content_header[2].split_once(": ").unwrap().1;
+              let mut file = File::create(["files/",path.as_str(),content_dispositions.get("filename").unwrap()].concat())?;
+
+              file.write(&body)?;
+              let mut total_bytes_read = body.len();
+              while total_bytes_read < content_length.parse::<usize>()? {
+                let bytes_read = stream.read(&mut buffer)?;
+                total_bytes_read += bytes_read;
+                body = buffer[0..bytes_read].to_vec();
+                file.write(&body)?;
+                println!("\nMore Body\n---------\n{}", String::from_utf8_lossy(&body));
+              }
+              (not_found, "Woops".as_bytes().to_vec())
+            } else {
+              println!("Server Error: POST is neither an Action nor has a Content-Type");
+              (not_found, "Woops".as_bytes().to_vec())
+            }
+          } else {
+            println!("Server Error: POST is neither an Action nor has a Content-Type");
+            (not_found, "Woops".as_bytes().to_vec())
+          }
         }
       }
     };
