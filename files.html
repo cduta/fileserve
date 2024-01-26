@@ -29,7 +29,6 @@
 
   <style>
   .btnLink {
-    font: initial monospace;
     background-color: transparent;
     color: #000;
     text-decoration: none;
@@ -106,7 +105,7 @@
   // Create folder
   function create_dir() {
     var action = "create_file";
-    fetch(prompt("Directory name?", ""), { method: "POST", headers: {"body-size": action.length}, body: action}).then(r => console.log(r));
+    fetch(prompt("Directory name?", ""), { method: "POST", headers: {"body-size": action.length}, body: action}).then(r => location.reload());
   }
   </script>
 </head>
@@ -115,8 +114,8 @@
 {{Entries}}
 <button onclick="javascript:create_dir()">New Directory</button>
 <button>Upload</button>
-<button>Upload Directory</button>
+<!-- <button>Upload Directory</button>
 <button>Download Files</button>
-<button>Download Files + Directories</button>
+<button>Download Files + Directories</button>-->
 </body>
 </html>
