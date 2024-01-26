@@ -1,4 +1,4 @@
-use std::{ sync::{ mpsc, Arc, Mutex }, thread };
+use std::{ sync::{ mpsc, Arc, Mutex }, thread, time::Duration };
 
 pub type ThreadPoolError<'a> = &'a str;
 type Job = Box<dyn FnOnce() + Send + 'static>;
@@ -68,9 +68,9 @@ fn work(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> ! {
       Ok(exclusive_message) =>
         match exclusive_message.recv() {
           Ok(job) => { println!("HTTP request delegated to worker {id}"); job() },
-          Err(e)  => println!("Running Worker Error: Receiving message failed. {e}")
+          Err(e)  => { thread::sleep(Duration::from_secs(1)); println!("Running Worker Error: Receiving message failed. {e}") }
         },
-      Err(e) => println!("Running Worker Error: Receiver lock failed. {e}")
+      Err(e) => { thread::sleep(Duration::from_secs(1)); println!("Running Worker Error: Receiver lock failed. {e}") }
     }
   }
 }

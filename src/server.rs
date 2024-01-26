@@ -205,14 +205,41 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
               let _content_type = content_header[2].split_once(": ").unwrap().1;
               let mut file = File::create(["files/",path.as_str(),content_dispositions.get("filename").unwrap()].concat())?;
 
-              file.write(&body)?;
+              let mut i = 4;
+              for window in body.windows(4) {
+                if  window[0] == HEADER_END[0]
+                 && window[1] == HEADER_END[1]
+                 && window[2] == HEADER_END[2]
+                 && window[3] == HEADER_END[3] {
+                  break;
+                }
+                i+=1;
+              }
+
+              file.write(&body.split_at(i).1)?;
               let mut total_bytes_read = body.len();
-              while total_bytes_read < content_length.parse::<usize>()? {
-                let bytes_read = stream.read(&mut buffer)?;
+              let total_bytes_expected = content_length.parse::<usize>()?;
+              while total_bytes_read < total_bytes_expected {
+                let mut bytes_read = stream.read(&mut buffer)?;
                 total_bytes_read += bytes_read;
                 body = buffer[0..bytes_read].to_vec();
+
+                // Make sure that the last buffer read does not split up the last line in the content
+                if total_bytes_read + BUFFER_SIZE >= total_bytes_expected {
+                  let prev_bytes_read = bytes_read;
+                  bytes_read = stream.read(&mut buffer)?;
+                  total_bytes_read += bytes_read;
+                  body.append(&mut buffer[0..bytes_read].to_vec());
+                  println!("\nMore Body (Read: {} Total: {} Expected: {})\n---------\n{}", prev_bytes_read + bytes_read, total_bytes_read, total_bytes_expected, String::from_utf8_lossy(&body));
+
+                  body.reverse();
+                  body = body.into_iter().skip(2).skip_while(|&v| v != 13).collect::<Vec<u8>>();
+                  body.reverse();
+                } else {
+                  println!("\nMore Body (Read: {} Total: {} Expected: {})\n---------\n{}", bytes_read, total_bytes_read, total_bytes_expected, String::from_utf8_lossy(&body));
+                }
+
                 file.write(&body)?;
-                println!("\nMore Body\n---------\n{}", String::from_utf8_lossy(&body));
               }
               (not_found, "Woops".as_bytes().to_vec())
             } else {
