@@ -14,6 +14,15 @@ mod error;
 use threadpool::ThreadPool;
 use error::ServerError;
 
+const BUFFER_SIZE         : usize   = 8096;
+const STREAM_BLOCK_IN_SECS: u64     = 5;
+const CRLF                : [u8; 2] = [13,10];
+const DASH_DASH           : [u8; 2] = [45,45];
+const HEADER_END          : [u8; 4] = [13,10,13,10];
+const FIRST_SEPARATOR     : [u8; 2] = [45,45];
+const BODY_SEPARATOR      : [u8; 4] = [13,10,45,45];
+const MAX_RETRIES         : u8      = 5;
+
 enum HTTPRequestType { GET, POST }
 
 impl Display for HTTPRequestType {
@@ -43,10 +52,26 @@ struct Request {
   r_type : HTTPRequestType,
   url    : String,
   version: String,
-  content: HTTPSettings
+  info   : HTTPSettings
 }
 
 impl Request {
+  fn parse_header_info(lines: Vec<&str>) -> HashMap<String, String> {
+    lines
+    .iter()
+    .skip(1)
+    .fold(HashMap::new(), |mut acc, s| {
+      if let Some((name, value)) = s.split_once(": ") {
+        if let Some(prev) = acc.insert(name.to_string(), value.trim().to_string()) {
+          println!("HTTP Parse Warning: Duplicate entry {name} replaces {prev} with {value}")
+        }
+      } else {
+        println!("HTTP Parse Warning: Malformed header ({s})");
+      }
+      acc
+    })
+  }
+
   fn parse_header(req_string: String) -> Result<Self,ServerError> {
     let lines = req_string
       .split("\r\n")
@@ -58,32 +83,18 @@ impl Request {
 
     if header.len() != 3 { return Err(ServerError::HTTPParseError(format!("HTTP Parse Error: Malformed header ({})", lines[0]))) }
 
-    let content = lines
-      .iter()
-      .skip(1)
-      .fold(HashMap::new(), |mut acc, s| {
-        if let Some((name, value)) = s.split_once(": ") {
-          if let Some(prev) = acc.insert(name.to_string(), value.trim().to_string()) {
-            println!("HTTP Parse Warning: Duplicate entry {name} replaces {prev} with {value}")
-          }
-        } else {
-          println!("HTTP Parse Warning: Malformed header or body ({s})");
-        }
-        acc
-      });
-
     Ok(Self {
       r_type : HTTPRequestType::try_from(header[0])?,
       url    : header[1].to_string(),
       version: header[2].to_string(),
-      content
+      info   : Request::parse_header_info(lines)
     })
   }
 }
 
 impl Display for Request {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "Request Type: {}\nVersion: {}\nURL: {}\nSettings: {:?}", self.r_type, self.version, self.url, self.content)
+    write!(f, "Request Type: {}\nVersion: {}\nURL: {}\nSettings: {:?}", self.r_type, self.version, self.url, self.info)
   }
 }
 
@@ -122,21 +133,12 @@ fn dir(relative_path: String) -> Result<Vec<u8>, ServerError>  {
   Ok(dirs.into_iter().fold(Vec::new(), |mut acc: Vec<u8>, mut entry| { acc.append(&mut entry); acc.append("<br>".as_bytes().to_vec().as_mut()); acc }))
 }
 
-const BUFFER_SIZE   : usize = 8096;
-const HEADER_END    : [u8; 4] = [13,10,13,10];
-const BODY_SEPARATOR: [u8; 4] = [13,10,45,45];
-const MAX_RETRIES   : u8 = 5;
-
-fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
+fn read_via<F>(stream: &mut TcpStream, mut f: F) -> Result<(), ServerError>
+where F: FnMut(usize, &mut bool, &mut Vec<u8>) {
   let mut buffer = [0; BUFFER_SIZE];
-  let mut retries = 0;
-  let mut separator;
   let mut done = false;
+  let mut retries = 0;
   let mut cumulative_buffer: Vec<u8> = Vec::new();
-  let mut header_vec: Vec<u8> = Vec::new();
-  let mut body_vec: Vec<u8> = Vec::new();
-
-  // Get Request
   while !done {
     if retries > MAX_RETRIES { return Err(ServerError::TransportError(io::Error::from_raw_os_error(22))); }
     match stream.read(&mut buffer) {
@@ -144,34 +146,123 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
         if read == 0 { thread::sleep(Duration::from_secs(1)); retries += 1 } else {
           retries = 0;
           cumulative_buffer.append(&mut buffer[0..read].to_vec());
-          if cumulative_buffer.len() >= 4 {
-            separator = 4;
-            for window in cumulative_buffer.windows(4) {
-              if window[0] == HEADER_END[0]
-              && window[1] == HEADER_END[1]
-              && window[2] == HEADER_END[2]
-              && window[3] == HEADER_END[3] {
-                done = true;
-                if separator < read { body_vec = cumulative_buffer[separator+1..].to_vec(); }
-                break;
-              } else {
-                header_vec.push(window[0]);
-                separator+=1;
-              }
-            }
-            if !done { cumulative_buffer.clear() }
-          }
+          f(read, &mut done, &mut cumulative_buffer);
         }
       },
       Err(e)   => {
         retries += 1;
         match e.kind() {
-          ErrorKind::WouldBlock => { thread::sleep(Duration::from_secs(5)); },
+          ErrorKind::WouldBlock => { thread::sleep(Duration::from_secs(STREAM_BLOCK_IN_SECS)); },
           _ => { thread::sleep(Duration::from_secs(1)); println!("Header Read Error: {e}") }
         }
       }
     }
   }
+  Ok(())
+}
+
+fn upload_files(    stream       : &mut TcpStream,
+                mut body_vec     : Vec<u8>,
+                path             : String,
+                content_separator: String,
+                content_length   : usize) -> Result<(), ServerError> {
+  let first_separator = &[&DASH_DASH,&FIRST_SEPARATOR,content_separator.as_bytes(), &CRLF].concat();
+  let mut header_vec = Vec::new();
+
+  if content_length <= first_separator.len() {
+    return Ok(());
+  }
+
+  // If the body is too short, read more
+  if body_vec.len() < first_separator.len() {
+    read_via(stream, |_: usize, done: &mut bool, cumulative_buffer: &mut Vec<u8>| {
+      if body_vec.len() + cumulative_buffer.len() >= first_separator.len() {
+        body_vec.append(cumulative_buffer);
+        *done = true;
+      }
+    })?;
+  }
+
+  // If the body does not start with the first seperator, the body is malformed
+  if !body_vec.starts_with(&first_separator) {
+    return Err(ServerError::HTTPParseError("Content malformed; first separator not found".to_string()))
+  }
+
+  // Remove first separator from body_vec
+  body_vec = body_vec.split_at(first_separator.len()).1.to_vec();
+
+  // (*)
+  // If we already read part of the body, split accordingly
+  if let Some(cutoff) = body_vec.windows(4).position(|w| w.cmp(&HEADER_END).is_eq()) {
+    (header_vec, body_vec) = {
+      let (header_slice, body_slice) = body_vec.split_at(cutoff+HEADER_END.len());
+      (header_slice.to_vec(), body_slice.to_vec())
+    };
+  } else { // Otherwise, read until header is ready
+    read_via(stream, |_: usize, done: &mut bool, cumulative_buffer: &mut Vec<u8>| {
+      if let Some(cutoff) = cumulative_buffer.windows(4).position(|w| w.cmp(&HEADER_END).is_eq()) {
+        body_vec = {
+          let (header_slice, body_slice) = cumulative_buffer.split_at(cutoff+HEADER_END.len());
+          header_vec.append(&mut header_slice.to_vec());
+          body_slice.to_vec()
+        };
+        *done = true;
+      }
+    })?;
+  }
+
+  let content_header_info = Request::parse_header_info(String::from_utf8_lossy(header_vec.as_slice()).split("\r\n").collect::<Vec<&str>>());
+  let mut content_disposition = HashMap::new();
+  if let Some(content_disposition_string) = content_header_info.get("Content-Disposition") {
+    content_disposition_string
+    .split("; ")
+    .filter_map(|s| s.split_once("="))
+    .for_each(|(key,value)| { content_disposition.insert(key, value.trim_matches('"')); });
+
+    if !content_disposition.contains_key("filename") {
+      return Err(ServerError::HTTPParseError("Content Incomplete; no filename found".to_string()));
+    }
+  } else {
+    return Err(ServerError::HTTPParseError("Content Incomplete; no Content-Disposition found".to_string()));
+  }
+
+  let mut file = File::create(["files/",path.as_str(),content_disposition.get("filename").unwrap()].concat())?;
+
+  //file.write_all(&body_vec)?;
+
+  // 1. Scan the body_vec for `-`
+  // 2. If there is one, write every character before it with file.write_all
+  // 3. See, if the following characters (if not enough, read more) are the separator
+  //    - If not, continue reading and writing
+  //    - If so, then remove it and then check if Content-Length has been read.
+  //      - If so, it is done. Leave loop.
+  //      - If not, continue at (*)
+
+  Ok(())
+}
+
+
+fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
+  let mut header_vec: Vec<u8> = Vec::new();
+  let mut body_vec: Vec<u8> = Vec::new();
+
+  // Get Request
+  read_via(&mut stream, |read: usize, done: &mut bool, cumulative_buffer: &mut Vec<u8>| {
+    if cumulative_buffer.len() >= HEADER_END.len() {
+      let mut cutoff = HEADER_END.len();
+      for window in cumulative_buffer.windows(HEADER_END.len()) {
+        if window.cmp(&HEADER_END).is_eq() {
+          *done = true;
+          if cutoff < read { body_vec = cumulative_buffer[cutoff+1..].to_vec(); }
+          break;
+        } else {
+          header_vec.push(window[0]);
+          cutoff+=1;
+        }
+      }
+      if !*done { cumulative_buffer.clear() }
+    }
+  })?;
 
   let header_string = String::from_utf8_lossy(&header_vec).to_string();
   println!("### BEGIN HEADER ###");
@@ -205,7 +296,7 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
           }
         },
         HTTPRequestType::POST => {
-          if let Some(action) = header.content.get("Action") {
+          if let Some(action) = header.info.get("Action") {
             match action.as_str() {
               "create_file" => {
                 let relative_path = ["files",header.url.as_str()].concat();
@@ -217,8 +308,10 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
                 (not_found, "Woops".as_bytes().to_vec())
               }
             }
-          } else if let (Some(content_separator), Some(content_length)) = (header.content.get("Content-Type").and_then(|content_type| content_type.split_once("=").map(|(_,sep)| sep.to_string())),header.content.get("Content-Length")) {
-            match upload_files(buffer, &mut stream, body_vec, path, content_separator, content_length.parse::<usize>()?) {
+          } else if let (Some(content_separator), Some(content_length)) = (
+                header.info.get("Content-Type").and_then(|content_type| content_type.split_once("boundary=").map(|(_,sep)| sep.to_string())),
+                header.info.get("Content-Length")) {
+            match upload_files(&mut stream, body_vec, path, content_separator, content_length.parse::<usize>()?) {
               Ok(()) => { (ok, ":)".as_bytes().to_vec()) },
               Err(e) => { println!("Server Error: File upload failed. {e}"); (not_found, "Woops".as_bytes().to_vec()) }
             }
@@ -235,73 +328,6 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
   stream.flush()?;
 
   // Done
-  Ok(())
-}
-
-fn upload_files(mut buffer       : [u8; 8096],
-                    stream       : &mut TcpStream,
-                mut body_vec     : Vec<u8>,
-                path             : String,
-                content_separator: String,
-                content_length   : usize) -> Result<(), ServerError> {
-  let from_utf8_lossy = &String::from_utf8_lossy(&body_vec);
-  let content_header = from_utf8_lossy.splitn(3, "\r\n").collect::<Vec<&str>>();
-  let _content_boundary = content_header[0];
-  let content_dispositions = content_header[1]
-  .split_once(": ")
-  .unwrap().1
-  .split("; ")
-  .fold(HashMap::new(), |mut acc, e| {
-    if let Some((key,value)) = e.split_once("=") {
-      acc.insert(key, &value[1..value.len()-1]);
-    }
-    acc
-  });
-  let _content_type = content_header[2].split_once(": ").unwrap().1;
-
-  let mut file = File::create(["files/",path.as_str(),content_dispositions.get("filename").unwrap()].concat())?;
-  let mut i = 4;
-  for window in body_vec.windows(4) {
-    if  window[0] == HEADER_END[0]
-    && window[1] == HEADER_END[1]
-    && window[2] == HEADER_END[2]
-    && window[3] == HEADER_END[3] {
-      break;
-    }
-    i+=1;
-  }
-
-  file.write(&body_vec.split_at(i).1)?;
-  let mut total_bytes_read = body_vec.len();
-  let total_bytes_expected = content_length;
-  while total_bytes_read < total_bytes_expected {
-    let mut bytes_read = {
-      match stream.read(&mut buffer) {
-        Ok(read)        => read,
-        Err(e)          => { print!("Content Stream Error: {e}"); thread::sleep(Duration::from_secs(1)); 0 }}};
-    total_bytes_read += bytes_read;
-    body_vec = buffer[0..bytes_read].to_vec();
-
-    // Make sure that the last buffer read does not split up the last line in the content
-    if total_bytes_read + BUFFER_SIZE >= total_bytes_expected {
-      let prev_bytes_read = bytes_read;
-      bytes_read = {
-        match stream.read(&mut buffer) {
-          Ok(read)        => read,
-          Err(e)          => { print!("Content Stream Error: {e}"); thread::sleep(Duration::from_secs(1)); 0 }}};
-      total_bytes_read += bytes_read;
-      body_vec.append(&mut buffer[0..bytes_read].to_vec());
-      println!("\nMore body++ (Read: {} Total: {} Expected: {})\n---------\n{}", prev_bytes_read + bytes_read, total_bytes_read, total_bytes_expected, String::from_utf8_lossy(&body_vec));
-
-      body_vec.reverse();
-      body_vec = body_vec.into_iter().skip(2).skip_while(|&v| v != 13).collect::<Vec<u8>>();
-      body_vec.reverse();
-    } else {
-      println!("\nMore body (Read: {} Total: {} Expected: {})\n---------\n{}", bytes_read, total_bytes_read, total_bytes_expected, String::from_utf8_lossy(&body_vec));
-    }
-
-    file.write(&body_vec)?;
-  }
   Ok(())
 }
 
