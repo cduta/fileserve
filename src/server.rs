@@ -258,34 +258,30 @@ fn upload_files(    stream       : &mut TcpStream,
     let mut pos = 0;
     while pos+last_seperator.len() <= body_vec.len() {
       if body_vec[pos] == CR {
-        println!("### A BEGIN CONTENT BODY (Read {total_read}/{content_length} Write {}/{}) ###", body_vec[..pos].len(), body_vec.len());
-        println!("{}", String::from_utf8_lossy(&body_vec[..pos]));
+        // println!("### BEGIN CONTENT BODY (Read {total_read}/{content_length} Write {}/{}) ###", body_vec[..pos].len(), body_vec.len());
+        // println!("{}", String::from_utf8_lossy(&body_vec[..pos]));
         file.write_all(&body_vec[..pos])?;
         body_vec = body_vec[pos..].to_vec();
         if body_vec.starts_with(&last_seperator) {
           body_vec = body_vec[last_seperator.len()..].to_vec();
           content_complete = true;
-          println!("### CONTENT READ ###");
+          //println!("### CONTENT READ ###");
           pos = 0;
         } else {
           pos = 1;
         }
-        println!("### END CONTENT BODY ###");
+        //println!("### END CONTENT BODY ###");
       } else {
         pos += 1;
       }
     }
 
     if pos > 0 {
-      println!("### B BEGIN CONTENT BODY (Read {total_read}/{content_length} Write {}/{}) ###", body_vec[..pos].len(), body_vec.len());
-      println!("{}", String::from_utf8_lossy(&body_vec[..pos]));
-      println!("### END CONTENT BODY ###");
+      // println!("### BEGIN CONTENT BODY (Read {total_read}/{content_length} Write {}/{}) ###", body_vec[..pos].len(), body_vec.len());
+      // println!("{}", String::from_utf8_lossy(&body_vec[..pos]));
+      // println!("### END CONTENT BODY ###");
       file.write_all(&body_vec[..pos])?;
       body_vec = body_vec[pos..].to_vec();
-      println!("{} < {} ?", last_seperator.len(), body_vec.len());
-      println!("Is complete? {}", content_complete);
-      println!("Is thingie? {}", body_vec.starts_with(&last_seperator));
-      println!("Rest Body:{}", String::from_utf8_lossy(&body_vec));
     }
 
     if !content_complete && total_read < content_length  {

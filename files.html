@@ -106,15 +106,24 @@
   // Create folder
   function create_dir() {
     var action = "create_directory";
-    fetch(
-      prompt("Directory name?", ""),
-      { method: "POST", headers: {"Action": action} }
-    ).then(r => location.reload());
+    var directory_name = prompt("Directory name?", "");
+    if (directory_name.length > 0) {
+      fetch(
+        directory_name,
+        { method: "POST", headers: {"Action": action} }
+      ).then(r => location.reload());
+    }
   }
 
   // Upload file
   function upload_file(event,form) {
     event.preventDefault();
+    // var formData = new FormData(form);
+    // for (var pair of formData.entries()) {
+    //   console.log(pair[0])
+    //   console.log(pair[1]);
+    // }
+    // return;
     fetch(
       form.action,
       { method: "post", body: new FormData(form) }
