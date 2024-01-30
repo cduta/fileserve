@@ -208,6 +208,18 @@ fn upload_files(    stream       : &mut TcpStream,
     Ok(compile_content_disposition(header_vec)?)
   }
 
+  fn create_file(path: &String, content_disposition: HashMap<String, String>) -> Result<File, ServerError>{
+    match content_disposition.get("filename") {
+      Some(file_name) =>
+        if file_name.is_empty() {
+          Err(ServerError::HTTPParseError("Uploading File Failed: No file name found".to_string()))
+        } else {
+          Ok(File::create(["files/",path.as_str(),file_name].concat())?)
+        },
+      None => Err(ServerError::HTTPParseError("Uploading File Failed: No file name found".to_string()))
+    }
+  }
+
   let first_separator = &[&DASH, content_separator.as_bytes(), &CRLF].concat();
   let last_seperator = &[&[CR], &[LF], &DASH, &DASH, content_separator.as_bytes(), &DASH, &DASH, &[CR], &[LF]].concat();
   let mut total_read = body_vec.len()+1;
@@ -238,7 +250,7 @@ fn upload_files(    stream       : &mut TcpStream,
   let mut content_complete = false;
 
   let mut content_disposition = get_content_disposition(&mut body_vec, stream, &mut total_read, content_length)?;
-  let mut file = File::create(["files/",path.as_str(),content_disposition.get("filename").unwrap()].concat())?;
+  let mut file = create_file(&path, content_disposition)?;
 
   // While content is not complete
   while !content_complete {
@@ -284,7 +296,7 @@ fn upload_files(    stream       : &mut TcpStream,
       })?;
     } else if total_read < content_length {
       content_disposition = get_content_disposition(&mut body_vec, stream, &mut total_read, content_length)?;
-      file = File::create(["files/",path.as_str(),content_disposition.get("filename").unwrap()].concat())?;
+      file =  create_file(&path, content_disposition)?;
       content_complete = false;
     }
   }
@@ -345,10 +357,14 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
         HTTPRequestType::POST => {
           if let Some(action) = header.info.get("Action") {
             match action.as_str() {
-              "create_file" => {
-                let relative_path = ["files",header.url.as_str()].concat();
-                fs::create_dir(relative_path.clone())?;
-                (ok, ["Directory ", relative_path.as_str(), " created..."].concat().as_bytes().to_vec())
+              "create_directory" => {
+                if header.url.is_empty() {
+                  (ok, "Can't create directory without name...".as_bytes().to_vec())
+                } else {
+                  let relative_path = ["files",header.url.as_str()].concat();
+                  fs::create_dir(relative_path.clone())?;
+                  (ok, ["Directory ", relative_path.as_str(), " created..."].concat().as_bytes().to_vec())
+                }
               },
               _ => {
                 println!("Server Error: Invalid Action `{action}`");
