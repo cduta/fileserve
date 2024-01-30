@@ -14,13 +14,14 @@ mod error;
 use threadpool::ThreadPool;
 use error::ServerError;
 
+const CR                  : u8      = 13;
+const LF                  : u8      = 10;
+const HYPHEN              : u8      = 45;
 const BUFFER_SIZE         : usize   = 8096;
 const STREAM_BLOCK_IN_SECS: u64     = 5;
-const CRLF                : [u8; 2] = [13,10];
-const DASH_DASH           : [u8; 2] = [45,45];
-const HEADER_END          : [u8; 4] = [13,10,13,10];
-const FIRST_SEPARATOR     : [u8; 2] = [45,45];
-const BODY_SEPARATOR      : [u8; 4] = [13,10,45,45];
+const CRLF                : [u8; 2] = [CR,LF];
+const DASH                : [u8; 1] = [HYPHEN];
+const HEADER_END          : [u8; 4] = [CR,LF,CR,LF];
 const MAX_RETRIES         : u8      = 5;
 
 enum HTTPRequestType { GET, POST }
@@ -56,10 +57,10 @@ struct Request {
 }
 
 impl Request {
-  fn parse_header_info(lines: Vec<&str>) -> HashMap<String, String> {
+  fn compile_header_info(lines: Vec<&str>, skip: usize) -> HashMap<String, String> {
     lines
     .iter()
-    .skip(1)
+    .skip(skip)
     .fold(HashMap::new(), |mut acc, s| {
       if let Some((name, value)) = s.split_once(": ") {
         if let Some(prev) = acc.insert(name.to_string(), value.trim().to_string()) {
@@ -87,7 +88,7 @@ impl Request {
       r_type : HTTPRequestType::try_from(header[0])?,
       url    : header[1].to_string(),
       version: header[2].to_string(),
-      info   : Request::parse_header_info(lines)
+      info   : Request::compile_header_info(lines, 1)
     })
   }
 }
@@ -133,7 +134,7 @@ fn dir(relative_path: String) -> Result<Vec<u8>, ServerError>  {
   Ok(dirs.into_iter().fold(Vec::new(), |mut acc: Vec<u8>, mut entry| { acc.append(&mut entry); acc.append("<br>".as_bytes().to_vec().as_mut()); acc }))
 }
 
-fn read_via<F>(stream: &mut TcpStream, mut f: F) -> Result<(), ServerError>
+fn read_until_done<F>(stream: &mut TcpStream, mut f: F) -> Result<(), ServerError>
 where F: FnMut(usize, &mut bool, &mut Vec<u8>) {
   let mut buffer = [0; BUFFER_SIZE];
   let mut done = false;
@@ -166,8 +167,50 @@ fn upload_files(    stream       : &mut TcpStream,
                 path             : String,
                 content_separator: String,
                 content_length   : usize) -> Result<(), ServerError> {
-  let first_separator = &[&DASH_DASH,&FIRST_SEPARATOR,content_separator.as_bytes(), &CRLF].concat();
-  let mut header_vec = Vec::new();
+
+  fn compile_content_disposition(header_vec: Vec<u8>) -> Result<HashMap<String, String>, ServerError> {
+    let mut content_disposition = HashMap::new();
+    let content_header_info = Request::compile_header_info(String::from_utf8_lossy(header_vec.as_slice()).split("\r\n").collect::<Vec<&str>>(), 0);
+    if let Some(content_disposition_string) = content_header_info.get("Content-Disposition") {
+      content_disposition_string
+      .split("; ")
+      .filter_map(|s| s.split_once("="))
+      .for_each(|(key,value)| { content_disposition.insert(key.to_string(), value.trim_matches('"').to_string()); });
+
+      if !content_disposition.contains_key("filename") {
+        return Err(ServerError::HTTPParseError("Content Incomplete; no filename found".to_string()));
+      }
+    } else {
+      return Err(ServerError::HTTPParseError("Content Incomplete; no Content-Disposition found".to_string()));
+    }
+    Ok(content_disposition)
+  }
+
+  fn get_content_disposition(body_vec: &mut Vec<u8>, stream: &mut TcpStream, total_read: &mut usize, content_length: usize) -> Result<HashMap<String, String>, ServerError> {
+    let mut header_vec = Vec::new();
+    if let Some(cutoff) = body_vec.windows(4).position(|w| w.cmp(&HEADER_END).is_eq()) {
+        header_vec = body_vec[..cutoff].to_vec();
+        *body_vec = body_vec[cutoff+HEADER_END.len()..].to_vec();
+    } else { // Otherwise, read until header is ready
+      header_vec.append(body_vec);
+      read_until_done(stream, |read: usize, done: &mut bool, cumulative_buffer: &mut Vec<u8>| {
+        *total_read += read;
+        if let Some(cutoff) = cumulative_buffer.windows(4).position(|w| w.cmp(&HEADER_END).is_eq()) {
+          header_vec.append(&mut cumulative_buffer[..cutoff].to_vec());
+          *body_vec = body_vec[cutoff+HEADER_END.len()..].to_vec();
+          *done = true;
+        }
+      })?;
+    }
+    println!("### BEGIN CONTENT HEADER (Read {total_read}/{content_length}) ###");
+    println!("{}{}", String::from_utf8_lossy(&header_vec), String::from_utf8_lossy(&HEADER_END));
+    println!("### END CONTENT HEADER ###");
+    Ok(compile_content_disposition(header_vec)?)
+  }
+
+  let first_separator = &[&DASH, content_separator.as_bytes(), &CRLF].concat();
+  let last_seperator = &[&[CR], &[LF], &DASH, &DASH, content_separator.as_bytes(), &DASH, &DASH, &[CR], &[LF]].concat();
+  let mut total_read = body_vec.len()+1;
 
   if content_length <= first_separator.len() {
     return Ok(());
@@ -175,7 +218,8 @@ fn upload_files(    stream       : &mut TcpStream,
 
   // If the body is too short, read more
   if body_vec.len() < first_separator.len() {
-    read_via(stream, |_: usize, done: &mut bool, cumulative_buffer: &mut Vec<u8>| {
+    read_until_done(stream, |read: usize, done: &mut bool, cumulative_buffer: &mut Vec<u8>| {
+      total_read += read;
       if body_vec.len() + cumulative_buffer.len() >= first_separator.len() {
         body_vec.append(cumulative_buffer);
         *done = true;
@@ -191,63 +235,69 @@ fn upload_files(    stream       : &mut TcpStream,
   // Remove first separator from body_vec
   body_vec = body_vec.split_at(first_separator.len()).1.to_vec();
 
-  // (*)
-  // If we already read part of the body, split accordingly
-  if let Some(cutoff) = body_vec.windows(4).position(|w| w.cmp(&HEADER_END).is_eq()) {
-    (header_vec, body_vec) = {
-      let (header_slice, body_slice) = body_vec.split_at(cutoff+HEADER_END.len());
-      (header_slice.to_vec(), body_slice.to_vec())
-    };
-  } else { // Otherwise, read until header is ready
-    read_via(stream, |_: usize, done: &mut bool, cumulative_buffer: &mut Vec<u8>| {
-      if let Some(cutoff) = cumulative_buffer.windows(4).position(|w| w.cmp(&HEADER_END).is_eq()) {
-        body_vec = {
-          let (header_slice, body_slice) = cumulative_buffer.split_at(cutoff+HEADER_END.len());
-          header_vec.append(&mut header_slice.to_vec());
-          body_slice.to_vec()
-        };
-        *done = true;
-      }
-    })?;
-  }
+  let mut content_complete = false;
 
-  let content_header_info = Request::parse_header_info(String::from_utf8_lossy(header_vec.as_slice()).split("\r\n").collect::<Vec<&str>>());
-  let mut content_disposition = HashMap::new();
-  if let Some(content_disposition_string) = content_header_info.get("Content-Disposition") {
-    content_disposition_string
-    .split("; ")
-    .filter_map(|s| s.split_once("="))
-    .for_each(|(key,value)| { content_disposition.insert(key, value.trim_matches('"')); });
-
-    if !content_disposition.contains_key("filename") {
-      return Err(ServerError::HTTPParseError("Content Incomplete; no filename found".to_string()));
-    }
-  } else {
-    return Err(ServerError::HTTPParseError("Content Incomplete; no Content-Disposition found".to_string()));
-  }
-
+  let mut content_disposition = get_content_disposition(&mut body_vec, stream, &mut total_read, content_length)?;
   let mut file = File::create(["files/",path.as_str(),content_disposition.get("filename").unwrap()].concat())?;
 
-  //file.write_all(&body_vec)?;
+  // While content is not complete
+  while !content_complete {
+    //  We may still find a last_seperator in the body_vec
+    let mut pos = 0;
+    while pos+last_seperator.len() <= body_vec.len() {
+      if body_vec[pos] == CR {
+        println!("### A BEGIN CONTENT BODY (Read {total_read}/{content_length} Write {}/{}) ###", body_vec[..pos].len(), body_vec.len());
+        println!("{}", String::from_utf8_lossy(&body_vec[..pos]));
+        file.write_all(&body_vec[..pos])?;
+        body_vec = body_vec[pos..].to_vec();
+        if body_vec.starts_with(&last_seperator) {
+          body_vec = body_vec[last_seperator.len()..].to_vec();
+          content_complete = true;
+          println!("### CONTENT READ ###");
+          pos = 0;
+        } else {
+          pos = 1;
+        }
+        println!("### END CONTENT BODY ###");
+      } else {
+        pos += 1;
+      }
+    }
 
-  // 1. Scan the body_vec for `-`
-  // 2. If there is one, write every character before it with file.write_all
-  // 3. See, if the following characters (if not enough, read more) are the separator
-  //    - If not, continue reading and writing
-  //    - If so, then remove it and then check if Content-Length has been read.
-  //      - If so, it is done. Leave loop.
-  //      - If not, continue at (*)
+    if pos > 0 {
+      println!("### B BEGIN CONTENT BODY (Read {total_read}/{content_length} Write {}/{}) ###", body_vec[..pos].len(), body_vec.len());
+      println!("{}", String::from_utf8_lossy(&body_vec[..pos]));
+      println!("### END CONTENT BODY ###");
+      file.write_all(&body_vec[..pos])?;
+      body_vec = body_vec[pos..].to_vec();
+      println!("{} < {} ?", last_seperator.len(), body_vec.len());
+      println!("Is complete? {}", content_complete);
+      println!("Is thingie? {}", body_vec.starts_with(&last_seperator));
+      println!("Rest Body:{}", String::from_utf8_lossy(&body_vec));
+    }
+
+    if !content_complete && total_read < content_length  {
+      read_until_done(stream, |read: usize, done: &mut bool, cumulative_buffer: &mut Vec<u8>| {
+        total_read += read;
+        body_vec.append(cumulative_buffer);
+        *done = body_vec.len() >= last_seperator.len();
+      })?;
+    } else if total_read < content_length {
+      content_disposition = get_content_disposition(&mut body_vec, stream, &mut total_read, content_length)?;
+      file = File::create(["files/",path.as_str(),content_disposition.get("filename").unwrap()].concat())?;
+      content_complete = false;
+    }
+  }
 
   Ok(())
 }
-
 
 fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
   let mut header_vec: Vec<u8> = Vec::new();
   let mut body_vec: Vec<u8> = Vec::new();
 
   // Get Request
-  read_via(&mut stream, |read: usize, done: &mut bool, cumulative_buffer: &mut Vec<u8>| {
+  read_until_done(&mut stream, |read: usize, done: &mut bool, cumulative_buffer: &mut Vec<u8>| {
     if cumulative_buffer.len() >= HEADER_END.len() {
       let mut cutoff = HEADER_END.len();
       for window in cumulative_buffer.windows(HEADER_END.len()) {
@@ -268,9 +318,6 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
   println!("### BEGIN HEADER ###");
   println!("{header_string}");
   println!("### END HEADER ###");
-  println!("### BEGIN (PARTIAL) BODY ###");
-  println!("{}", String::from_utf8_lossy(&body_vec));
-  println!("### END (PARTIAL) BODY ###");
 
   // Parse Header (Tokenize: "<GET|...> <URL> <HTTP/\d+.\d+>\n(<field>:<value>\n)+")
   let header = Request::parse_header(header_string)?;
