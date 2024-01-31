@@ -146,7 +146,7 @@
     fetch(
       form.action,
       { method: "post", body: new FormData(form) }
-    ).then(r => location.reload());
+    ).then(r => { form.reset(); location.reload() });
   }
   </script>
 </head>
