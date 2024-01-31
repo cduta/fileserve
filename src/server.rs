@@ -197,7 +197,7 @@ fn upload_files(    stream       : &mut TcpStream,
         *total_read += read;
         if let Some(cutoff) = cumulative_buffer.windows(4).position(|w| w.cmp(&HEADER_END).is_eq()) {
           header_vec.append(&mut cumulative_buffer[..cutoff].to_vec());
-          *body_vec = body_vec[cutoff+HEADER_END.len()..].to_vec();
+          *body_vec = cumulative_buffer[cutoff+HEADER_END.len()..].to_vec();
           *done = true;
         }
       })?;
@@ -221,7 +221,7 @@ fn upload_files(    stream       : &mut TcpStream,
   }
 
   let first_separator = &[&DASH, content_separator.as_bytes(), &CRLF].concat();
-  let last_seperator = &[&[CR], &[LF], &DASH, &DASH, content_separator.as_bytes(), &DASH, &DASH, &[CR], &[LF]].concat();
+  let mid_separator = &[&[CR], &[LF], &DASH, &DASH, content_separator.as_bytes()].concat();
   let mut total_read = body_vec.len()+1;
 
   if content_length <= first_separator.len() {
@@ -245,26 +245,29 @@ fn upload_files(    stream       : &mut TcpStream,
   }
 
   // Remove first separator from body_vec
+  // println!("{}", String::from_utf8_lossy(&first_separator));
   body_vec = body_vec.split_at(first_separator.len()).1.to_vec();
 
-  let mut content_complete = false;
+  let mut part_complete = false;
 
   let mut content_disposition = get_content_disposition(&mut body_vec, stream, &mut total_read, content_length)?;
   let mut file = create_file(&path, content_disposition)?;
 
   // While content is not complete
-  while !content_complete {
-    //  We may still find a last_seperator in the body_vec
+  while total_read < content_length {
+    //  We may still find a last_separator in the body_vec
     let mut pos = 0;
-    while pos+last_seperator.len() <= body_vec.len() {
+    while !part_complete
+       && total_read < content_length
+       && pos+mid_separator.len()+2 <= body_vec.len() {
       if body_vec[pos] == CR {
-        // println!("### BEGIN CONTENT BODY (Read {total_read}/{content_length} Write {}/{}) ###", body_vec[..pos].len(), body_vec.len());
-        // println!("{}", String::from_utf8_lossy(&body_vec[..pos]));
+        //println!("### BEGIN CONTENT BODY (Read {total_read}/{content_length} Write {}/{}) ###", body_vec[..pos].len(), body_vec.len());
+        //println!("{}", String::from_utf8_lossy(&body_vec[..pos]));
         file.write_all(&body_vec[..pos])?;
         body_vec = body_vec[pos..].to_vec();
-        if body_vec.starts_with(&last_seperator) {
-          body_vec = body_vec[last_seperator.len()..].to_vec();
-          content_complete = true;
+        if body_vec.starts_with(&mid_separator) {
+          body_vec = body_vec[mid_separator.len()+2..].to_vec();
+          part_complete = true;
           //println!("### CONTENT READ ###");
           pos = 0;
         } else {
@@ -277,26 +280,25 @@ fn upload_files(    stream       : &mut TcpStream,
     }
 
     if pos > 0 {
-      // println!("### BEGIN CONTENT BODY (Read {total_read}/{content_length} Write {}/{}) ###", body_vec[..pos].len(), body_vec.len());
-      // println!("{}", String::from_utf8_lossy(&body_vec[..pos]));
-      // println!("### END CONTENT BODY ###");
+      //println!("### BEGIN CONTENT BODY (Read {total_read}/{content_length} Write {}/{}) ###", body_vec[..pos].len(), body_vec.len());
+      //println!("{}", String::from_utf8_lossy(&body_vec[..pos]));
+      //println!("### END CONTENT BODY ###");
       file.write_all(&body_vec[..pos])?;
       body_vec = body_vec[pos..].to_vec();
     }
 
-    if !content_complete && total_read < content_length  {
+    if !part_complete && total_read < content_length  {
       read_until_done(stream, |read: usize, done: &mut bool, cumulative_buffer: &mut Vec<u8>| {
         total_read += read;
         body_vec.append(cumulative_buffer);
-        *done = body_vec.len() >= last_seperator.len();
+        *done = body_vec.len() >= mid_separator.len();
       })?;
     } else if total_read < content_length {
       content_disposition = get_content_disposition(&mut body_vec, stream, &mut total_read, content_length)?;
-      file =  create_file(&path, content_disposition)?;
-      content_complete = false;
+      file = create_file(&path, content_disposition)?;
+      part_complete = false;
     }
   }
-
   Ok(())
 }
 
