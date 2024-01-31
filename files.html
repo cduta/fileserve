@@ -97,7 +97,8 @@
   function download(path) {
     const link = document.createElement("a");
     link.href = path;
-    link.download = path;
+    link.target = "_blank";
+    //link.download = path;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
