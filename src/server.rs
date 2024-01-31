@@ -302,6 +302,30 @@ fn upload_files(    stream       : &mut TcpStream,
   Ok(())
 }
 
+fn decode_url_char(s: &str) -> Result<char, ServerError> {
+  Ok(char::from(u8::from_str_radix(s.replace("%", "").as_str(),16)?))
+}
+
+fn decode_url(s: &str) -> String {
+  let encoded_path = s.chars().collect::<Vec<char>>();
+  let mut decoded_path = String::new();
+  let mut i: usize = 0;
+
+  while i < encoded_path.len() {
+    if encoded_path[i] == '%' && i+2 < encoded_path.len() {
+      match decode_url_char(encoded_path[i..=i+2].into_iter().collect::<String>().as_str()) {
+        Ok(c)  => { decoded_path.push(c); i += 3; },
+        Err(e) => { println!("Error decoding URL: {e}"); i += 1; }
+      }
+    } else {
+      decoded_path.push(encoded_path[i]);
+      i += 1;
+    }
+  }
+
+  decoded_path
+}
+
 fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
   let mut header_vec: Vec<u8> = Vec::new();
   let mut body_vec: Vec<u8> = Vec::new();
@@ -341,7 +365,7 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
       println!("Server Error: Indirection in path forbidden");
       (not_found, "Woops".as_bytes().to_vec())
     } else {
-      let path = header.url.chars().skip(1).collect::<String>();
+      let path = decode_url(header.url.chars().skip(1).collect::<String>().as_str());
       match header.r_type {
         HTTPRequestType::GET => {
           if header.url.ends_with("/") {
@@ -359,9 +383,9 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
                 if header.url.is_empty() {
                   (ok, "Can't create directory without name...".as_bytes().to_vec())
                 } else {
-                  let relative_path = ["files",header.url.as_str()].concat();
-                  fs::create_dir(relative_path.clone())?;
-                  (ok, ["Directory ", relative_path.as_str(), " created..."].concat().as_bytes().to_vec())
+                  let decoded_path = decode_url(["files",header.url.as_str()].concat().as_str());
+                  fs::create_dir(&decoded_path)?;
+                  (ok, ["Directory ", decoded_path.as_str(), " created..."].concat().as_bytes().to_vec())
                 }
               },
               _ => {
