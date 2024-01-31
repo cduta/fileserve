@@ -65,6 +65,21 @@
     max-height: 100%;
     object-fit: contain;
   }
+
+  .loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    background-color: rgba(0, 0, 0, 0.5);
+    /*dim the background*/
+  }
+
+  .hidden {
+    display: none;
+  }
   </style>
   <script>
   const preview_id = "image-preview";
@@ -106,6 +121,7 @@
 
   // Create folder
   function create_dir() {
+    document.getElementById("loading-screen").classList.add("hidden");
     var action = "create_directory";
     var directory_name = prompt("Directory name?", "");
     if (directory_name.length > 0) {
@@ -117,7 +133,8 @@
   }
 
   // Upload file
-  function upload_file(event,form) {
+  function upload_files(event,form) {
+    document.getElementById("loading-screen").classList.add("hidden");
     event.preventDefault();
     // var formData = new FormData(form);
     // console.log(formData);
@@ -135,9 +152,10 @@
 </head>
 
 <body>
+<div id="loading-screen" class="loading hidden"></div>
 {{Entries}}
 <button onclick="javascript:create_dir()">New Directory</button>
-<form id="file-upload" method="post" enctype="multipart/form-data" onsubmit="javascript:upload_file(event,this)">
+<form id="file-upload" method="post" enctype="multipart/form-data" onsubmit="javascript:upload_files(event,this)">
   <input name="file" type="file" multiple>
   <button>Upload</button>
 </form>
