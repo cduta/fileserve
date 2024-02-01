@@ -248,25 +248,27 @@ fn upload_files(    stream       : &mut TcpStream,
   // println!("{}", String::from_utf8_lossy(&first_separator));
   body_vec = body_vec.split_at(first_separator.len()).1.to_vec();
 
+  let mut content_complete = false;
   let mut part_complete = false;
 
   let mut content_disposition = get_content_disposition(&mut body_vec, stream, &mut total_read, content_length)?;
   let mut file = create_file(&path, content_disposition)?;
 
   // While content is not complete
-  while total_read < content_length {
+  while !content_complete {
     //  We may still find a last_separator in the body_vec
     let mut pos = 0;
     while !part_complete
-       && total_read < content_length
+       && !content_complete
        && pos+mid_separator.len()+2 <= body_vec.len() {
       if body_vec[pos] == CR {
-        //println!("### BEGIN CONTENT BODY (Read {total_read}/{content_length} Write {}/{}) ###", body_vec[..pos].len(), body_vec.len());
-        //println!("{}", String::from_utf8_lossy(&body_vec[..pos]));
+        // println!("### A BEGIN CONTENT BODY (Read {total_read}/{content_length} Write {}/{}) ###", body_vec[..pos].len(), body_vec.len());
+        // println!("{}", String::from_utf8_lossy(&body_vec[..pos]));
         file.write_all(&body_vec[..pos])?;
         body_vec = body_vec[pos..].to_vec();
         if body_vec.starts_with(&mid_separator) {
           body_vec = body_vec[mid_separator.len()+2..].to_vec();
+          content_complete = total_read == content_length;
           part_complete = true;
           //println!("### CONTENT READ ###");
           pos = 0;
@@ -280,9 +282,9 @@ fn upload_files(    stream       : &mut TcpStream,
     }
 
     if pos > 0 {
-      //println!("### BEGIN CONTENT BODY (Read {total_read}/{content_length} Write {}/{}) ###", body_vec[..pos].len(), body_vec.len());
-      //println!("{}", String::from_utf8_lossy(&body_vec[..pos]));
-      //println!("### END CONTENT BODY ###");
+      // println!("### B BEGIN CONTENT BODY (Read {total_read}/{content_length} Write {}/{}) ###", body_vec[..pos].len(), body_vec.len());
+      // println!("{}", String::from_utf8_lossy(&body_vec[..pos]));
+      // println!("### END CONTENT BODY ###");
       file.write_all(&body_vec[..pos])?;
       body_vec = body_vec[pos..].to_vec();
     }
@@ -396,7 +398,7 @@ fn serve(mut stream: TcpStream) -> Result<(), ServerError> {
           } else if let (Some(content_separator), Some(content_length)) = (
                 header.info.get("Content-Type").and_then(|content_type| content_type.split_once("boundary=").map(|(_,sep)| sep.to_string())),
                 header.info.get("Content-Length")) {
-            match upload_files(&mut stream, body_vec, path, content_separator, content_length.parse::<usize>()?) {
+            match upload_files(&mut stream, body_vec, decode_url(path.as_str()), content_separator, content_length.parse::<usize>()?) {
               Ok(()) => { (ok, ":)".as_bytes().to_vec()) },
               Err(e) => { println!("Server Error: File upload failed. {e}"); (not_found, "Woops".as_bytes().to_vec()) }
             }
